@@ -5,7 +5,7 @@ This directory contains the executable installer for the DDM Simulator.
 
 ## Installation Instructions
 
-1. Download `DDM-Simulator-Setup.exe` (358 MB).
+1. Download `DDM_Setup.exe` (358 MB).
 2. Run the installer and follow the on-screen instructions.
 3. The installer will create a folder containing:
    - R portable
@@ -14,7 +14,7 @@ This directory contains the executable installer for the DDM Simulator.
 
 ## System Requirements
 
-- Windows 7 or later
+- Windows 10 or later
 - 4 GB RAM (8 GB recommended)
 - 500 MB free disk space
 
