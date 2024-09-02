@@ -1,4 +1,4 @@
-# DDM Simulator <img src="images/icon.ico" alt="DDM Simulator Logo" width="80" align="right"/>
+# DDM-UI <img src="images/icon.ico" alt="DDM Simulator Logo" width="100" align="right"/>
 
 > Advancing behavioral science through open simulation
 
