@@ -1,6 +1,6 @@
 # DDM Simulator
 
-![DDM Simulator Logo](images/ico.ico)
+![DDM Simulator Logo](images/icon.ico)
 
 ## About
 
