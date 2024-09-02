@@ -1,1 +1,1 @@
-executable/DDM-Simulator-Setup.exe filter=lfs diff=lfs merge=lfs -text
+executable/DDM_Setup.exe filter=lfs diff=lfs merge=lfs -text
