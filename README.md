@@ -1,4 +1,4 @@
-# DDM-UI <img src="images/icon.ico" alt="DDM Simulator Logo" width="100" align="right"/>
+# DDM Simulator <img src="images/icon.ico" alt="DDM Simulator Logo" width="80" align="right"/>
 
 > Advancing behavioral science through open simulation
 
@@ -63,8 +63,15 @@ Within the simulator, you can access the "Help" section, which offers:
 
 - Detailed explanations of each component and parameter
 - Step-by-step guides for common tasks
-- Theoretical background on the Diffuse Discrepancy Model
 - Troubleshooting tips and FAQs
+
+### Theoretical Background
+
+For an in-depth understanding of the Diffuse Discrepancy Model and its applications, we recommend the following article:
+
+[Autoshaped impulsivity: Some explorations with a neural network model](https://www.sciencedirect.com/science/article/abs/pii/S037663572400055X?via%3Dihub)
+
+This article provides valuable insights into the theoretical foundations of the DDM. Please note that a more comprehensive article focusing specifically on the model is currently in preparation and will be linked here upon publication.
 
 ### Example Simulation
 
