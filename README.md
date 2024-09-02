@@ -1,4 +1,4 @@
-# DDM Simulator
+# DDM-UI
 
 ![DDM Simulator Logo](images/icon.ico)
 
