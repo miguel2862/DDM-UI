@@ -1,26 +1,27 @@
-# DDM Simulator <img src="images/icon.ico" alt="DDM Simulator Logo" width="40" align="right"/>
+# DDM Simulator <img src="images/icon.ico" alt="DDM Simulator Logo" width="80" align="right"/>
 
-> Simulate learning and conditioning phenomena with precision
+> Advancing behavioral science through open simulation
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-0.05-blue.svg)](https://github.com/your-repo/DDM-UI)
+[![Open Science](https://img.shields.io/badge/Open-Science-blue.svg)](https://en.wikipedia.org/wiki/Open_science)
+[![Version](https://img.shields.io/badge/version-0.05-green.svg)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
 
 ## 🌟 About
 
-The Diffuse Discrepancy Model (DDM) Simulator is a cutting-edge tool designed for behavioral scientists and researchers. Based on the groundbreaking work of Donahoe, Burgos and Palmer (1993), it offers a connectionist interpretation of the unified principle of reinforcement for both operant and Pavlovian conditioning.
+The Diffuse Discrepancy Model (DDM) Simulator is an innovative, open-source tool designed for researchers in behavioral sciences. Based on the seminal work of Donahoe, Burgos and Palmer (1993), it provides a connectionist interpretation of the unified principle of reinforcement for both operant and Pavlovian conditioning.
 
 ## 🚀 Key Features
 
-- 🧠 Simulates both Pavlovian and operant conditioning
+- 🧠 Simulates Pavlovian and operant conditioning
 - 🔬 Grounded in neuroanatomy and neurophysiology principles
 - 💡 Models neural processing units (NPUs) using advanced activation and learning rules
 - 🔄 Incorporates hippocampal and dopaminergic systems for comprehensive learning simulations
 
 ## 💻 Installation
 
-### Windows Executable
-
-1. Download `DDM_Setup.exe` (358 MB) from the [releases page](https://github.com/your-repo/DDM-UI/releases).
+1. Download the installer:
+   - [English Version (v0.05)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
+   - [Spanish Version (v0.04)](https://drive.google.com/file/d/1gy456KA_bwoXmhocAvuYWLrurgJ-OUnx/view?usp=sharing)
 2. Run the installer and follow the on-screen instructions.
 3. The installer will create a folder containing:
    - R portable
@@ -41,10 +42,7 @@ The Diffuse Discrepancy Model (DDM) Simulator is a cutting-edge tool designed fo
 
 ## 📚 Documentation
 
-For detailed instructions and in-depth information, please refer to our comprehensive user manuals:
-
-- 🇬🇧 [English Version (v0.05)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
-- 🇪🇸 [Spanish Version (v0.04)](https://drive.google.com/file/d/1gy456KA_bwoXmhocAvuYWLrurgJ-OUnx/view?usp=sharing)
+Comprehensive user manuals are included within the simulator. Access them through the application's help menu for detailed instructions and in-depth information.
 
 ## 🧪 Example Simulation
 
@@ -55,18 +53,22 @@ To get started with a pre-configured simulation:
 3. For the 'Simulation Directory Path', use: `Simulation example/Extinction_example.rds`
 4. Click 'Load Simulation' to begin.
 
-You can find this example in the repository: [Extinction_example.rds](Simulation%20example/Extinction_example.rds)
+Example file: [Extinction_example.rds](Simulation%20example/Extinction_example.rds)
 
-## 🛠️ For Developers
+## 🛠️ Open Science & Development
 
-If you're interested in exploring or modifying the R code:
+We embrace the principles of open science. The DDM Simulator is designed to be modified, extended, and improved by the scientific community:
 
-- The main R script is available at: [DDM_UI.R](R/DDM_UI.R)
-- Feel free to fork the repository and submit pull requests for improvements!
+- Explore and modify the R code: [DDM_UI.R](R/DDM_UI.R)
+- Add new functions, graphics, or analysis tools
+- Customize the user interface
+- Implement new file formats or data structures
+
+We encourage researchers to fork the repository, make improvements, and share their work with the community. Together, we can advance the field of behavioral science through collaborative development and open sharing of knowledge.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License, promoting open and collaborative science. See the [LICENSE](LICENSE) file for details.
 
 ## 📞 Contact
 
@@ -82,20 +84,15 @@ Discover more about our research at our [laboratory website](http://www.ceic.cuc
 
 We extend our heartfelt gratitude to:
 
-- The Laboratory of Quantitative and Qualitative Behavior Analysis, CEIC, CUCBA, UDG for their unwavering support.
-- Cristiano Valerio Dos Santos from the Centro de Estudios e Investigaciones en Comportamiento (CEIC) for his invaluable contribution to the model's code and logic, skillfully adapting the work of Donahoe, Burgos and Palmer (1993) to R.
+- The **Laboratory for Experimental and Theoretical Research in Learning, Conditioning, and Adaptive Behavior**, led by Dr. Jose Enrique Burgos Triano, for their invaluable support and guidance.
+- Cristiano Valerio Dos Santos from the Centro de Estudios e Investigaciones en Comportamiento (CEIC) for his significant contribution to the model's code and logic, skillfully adapting the work of Donahoe, Burgos and Palmer (1993) to R.
 
 ## 🆘 Troubleshooting
 
-Encountering issues? Check our FAQ in the user manual or [open an issue](https://github.com/your-repo/DDM-UI/issues) on our GitHub page.
+If you encounter any issues, please check the FAQ section in the user manual within the simulator. For further assistance, contact our support team via email.
 
 ---
 
 <p align="center">
-  Made with ❤️ by the DDM Simulator Team
+  Advancing behavioral science through open collaboration and simulation
 </p>
-Special thanks to Cristiano Valerio Dos Santos from the Centro de Estudios e Investigaciones en Comportamiento (CEIC) for his significant contribution to the model's code and logic, adapting the work of Donahoe, Burgos and Palmer (1993) to R.
-
-## Troubleshooting
-
-If you encounter any issues, please check our FAQ in the user manual or open an issue on our GitHub page.
