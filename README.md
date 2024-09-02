@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Open Science](https://img.shields.io/badge/Open-Science-blue.svg)](https://en.wikipedia.org/wiki/Open_science)
 [![Version](https://img.shields.io/badge/version-0.05-green.svg)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
-[![R Version](https://img.shields.io/badge/R-4.1.0-blue.svg)](https://cran.r-project.org/)
+[![R Code](https://img.shields.io/badge/R_Code-Download-blue.svg)](R/DDM_UI.R)
 
 ## 🌟 About
 
@@ -89,6 +89,8 @@ We embrace the principles of open science. The DDM Simulator is designed to be m
 - Implement new file formats or data structures
 
 We encourage researchers to fork the repository, make improvements, and share their work with the community. Together, we can advance the field of behavioral science through collaborative development and open sharing of knowledge.
+
+The original SelNet code, written in Pascal, is also available at [https://github.com/jeburgos-selnet/source-code](https://github.com/jeburgos-selnet/source-code)
 
 ## 📄 License
 
