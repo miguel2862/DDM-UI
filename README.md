@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Open Science](https://img.shields.io/badge/Open-Science-blue.svg)](https://en.wikipedia.org/wiki/Open_science)
 [![Version](https://img.shields.io/badge/version-0.05-green.svg)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
+[![R Version](https://img.shields.io/badge/R-4.1.0-blue.svg)](https://cran.r-project.org/)
 
 ## 🌟 About
 
@@ -42,9 +43,30 @@ The Diffuse Discrepancy Model (DDM) Simulator is an innovative, open-source tool
 
 ## 📚 Documentation
 
-Comprehensive user manuals are included within the simulator. Access them through the application's help menu for detailed instructions and in-depth information.
+The DDM Simulator comes with comprehensive documentation to help you get started and make the most of its features:
 
-## 🧪 Example Simulation
+### User Interface Overview
+
+The simulator's interface is divided into several key sections:
+
+1. **Home**: Provides an introduction to the DDM and its capabilities.
+2. **Network Architecture**: Allows you to define and visualize the neural network structure.
+3. **Create Trials**: Design experimental trials with specific stimuli and timings.
+4. **Configure Contingencies**: Set up the experimental conditions and phases.
+5. **Simulate**: Run your designed experiments and observe the results.
+6. **Individual Results**: Analyze the outcomes for individual simulations.
+7. **General Results**: View aggregated results across multiple simulations.
+
+### Help Section
+
+Within the simulator, you can access the "Help" section, which offers:
+
+- Detailed explanations of each component and parameter
+- Step-by-step guides for common tasks
+- Theoretical background on the Diffuse Discrepancy Model
+- Troubleshooting tips and FAQs
+
+### Example Simulation
 
 To get started with a pre-configured simulation:
 
@@ -53,7 +75,9 @@ To get started with a pre-configured simulation:
 3. For the 'Simulation Directory Path', use: `Simulation example/Extinction_example.rds`
 4. Click 'Load Simulation' to begin.
 
-Example file: [Extinction_example.rds](Simulation%20example/Extinction_example.rds)
+[Download Example Simulation File](Simulation%20example/Extinction_example.rds)
+
+For more detailed instructions and in-depth information, refer to the comprehensive documentation within the simulator.
 
 ## 🛠️ Open Science & Development
 
@@ -75,7 +99,7 @@ This project is licensed under the MIT License, promoting open and collaborative
 For inquiries or collaboration opportunities:
 
 **Miguel Ángel Aguayo Mendoza**  
-📧 Email: miguel.aguayo@academicos.udg.mx  
+📧 Email: miguel.aguayo@academicos.udg.mx or aguayo@iteso.mx  
 🏫 University of Guadalajara
 
 Discover more about our research at our [laboratory website](http://www.ceic.cucba.udg.mx/Investigacion/laboratorios?id=13).
@@ -89,7 +113,7 @@ We extend our heartfelt gratitude to:
 
 ## 🆘 Troubleshooting
 
-If you encounter any issues, please check the FAQ section in the user manual within the simulator. For further assistance, contact our support team via email.
+If you encounter any issues, please check the Help section within the simulator. For further assistance, contact our support team via email at miguel.aguayo@academicos.udg.mx or aguayo@iteso.mx.
 
 ---
 
