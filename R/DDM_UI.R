@@ -1,4 +1,5 @@
 #################################################################################################
+#Librerias necesarias
 library(shiny)
 library(shinydashboard)
 library(DT)
@@ -20,7 +21,13 @@ library(shinyBS)
 
 #################################################################################################
 # Cargar las funciones del modelo DDM
-Simulate.DBP <- function(NPEs, Connections, TimeSteps, HasITI){
+### 2024/09/11
+Simulate.DBP <- function(NPEs, 
+                         Connections, 
+                         TimeSteps, 
+                         HasITI, 
+                         threshold = 'gaussian', 
+                         saveData=list()){
   
   tryCatch({
     
@@ -51,19 +58,59 @@ Simulate.DBP <- function(NPEs, Connections, TimeSteps, HasITI){
                                      p = "numeric"))
     
     
+    ComputeInputs <- function(npe){
+      
+      if(length(npe@InputConnections)>0){
+        inputs <- c(0,0)
+        
+        for(j in 1:length(npe@InputConnections)){
+          pre <- npe@InputConnections[[j]]@preSinapticNPE
+          if(network[[pre]]@Type == "Excitatory"){
+            inputs[1] = inputs[1] + network[[pre]]@Activation * npe@InputConnections[[j]]@weight
+          }else{
+            inputs[2] = inputs[2] + network[[pre]]@Activation * npe@InputConnections[[j]]@weight
+          }
+        }
+        
+      }
+      
+      return(inputs)
+      
+    }
+    
     L <- function(x, sigma){
+      
       return(1 / (1 + exp((-x + 0.5) / sigma)))
+      
+    }
+    
+    
+    estBetaParams <- function(mu, sigma) {
+      
+      var = sigma^2 
+      
+      alpha <- mu*(mu-mu^2-var)/var
+      
+      beta <- (mu*(1-mu)/var - 1)*(1-mu)
+      
+      if(alpha <= 0 | beta <= 0) stop('this combination of mean and standard deviation for the threshold results in invalid parameters for a beta distribution')
+      
+      return(params = list(alpha = alpha, beta = beta))
     }
     
     dVTA <- function(){
+      
       d = 0
       n = 0
       for(i in 1:length(network)){
+        
         if(network[[i]]@Layer == "Dopaminergic"){
           d = d + (network[[i]]@Activation - network[[i]]@PreviousActivation)
-          n = n + 1
+          n=n+1
         }
+        
       }
+      
       return(ifelse(d>0,d/n,0))
     }
     
@@ -71,128 +118,185 @@ Simulate.DBP <- function(NPEs, Connections, TimeSteps, HasITI){
       d = 0
       n = 0
       for(i in 1:length(network)){
+        
         if(network[[i]]@Layer == "Hippocampal"){
           d = d + abs(network[[i]]@Activation-network[[i]]@PreviousActivation)
-          #d = d + (network[[i]]@Activation-network[[i]]@PreviousActivation)
-          n = n + 1
+          n=n+1
         }
+        
       }
+      
       return(d/n+dVTA*(1-d/n))
+      
     }
     
+    
     Compute.r <- function(npe){
+      
+      
       sum.weights.exc <- 0
-      sum.weights.inh <- 0
+      
+      sum.weights.inh<- 0
       
       if(length(network[[npe]]@InputConnections)>0){
         for(i in 1:length(network[[npe]]@InputConnections)){
           pre <- network[[npe]]@InputConnections[[i]]@preSinapticNPE
           
           if (network[[pre]]@Type == "Excitatory"){
-            sum.weights.exc <- sum.weights.exc + ifelse(network[[pre]]@Layer == "US",0,network[[npe]]@InputConnections[[i]]@weight)
+            sum.weights.exc <-  sum.weights.exc + ifelse(network[[pre]]@Layer == "US",0,network[[npe]]@InputConnections[[i]]@weight)
           }else{
-            sum.weights.inh <- sum.weights.inh + network[[npe]]@InputConnections[[i]]@weight
+            sum.weights.inh <-sum.weights.inh + network[[npe]]@InputConnections[[i]]@weight
           }
+          
+          
         }
       }
       
       return(c(1-sum.weights.exc, 1-sum.weights.inh))
     }
     
-    data.sim <- as.data.frame(matrix(nrow = nrow(TimeSteps), ncol = nrow(NPEs) + nrow(Connections) + 3))
     
-    colnames(data.sim) <- c("Phase","Trial","TimeStep",NPEs[,1],paste(Connections[,1],Connections[,2], sep = "-"))
-    
-    ### Initialize network with NPEs and connections
+    # Initialize network ----
     network <- list()
     
     for(i in 1:nrow(NPEs)){
-      network[[NPEs[i,1]]] <- new("NPE", Name=NPEs[i,1],
-                                  Type = NPEs[i,2],
-                                  Layer = NPEs[i,3],
-                                  Activation = NPEs[i,4],
-                                  TemporalSummation = NPEs[i,5],
-                                  ActivationDecay = NPEs[i,6],
-                                  mu = NPEs[i,7],
-                                  sigma = NPEs[i,8],
-                                  logisSigma = NPEs[i,9],
-                                  PreviousExcitatoryInput = 0,
-                                  ExcitatoryInput = 0,
-                                  InhibitoryInput = 0,
-                                  PreviousActivation = 0)
+      
+      network[[NPEs[i,1]]]<- new("NPE", Name=NPEs[i,1],
+                                 Type = NPEs[i,2],
+                                 Layer = NPEs[i,3],
+                                 Activation = NPEs[i,4],
+                                 TemporalSummation = NPEs[i,5],
+                                 ActivationDecay = NPEs[i,6],
+                                 mu = NPEs[i,7],
+                                 sigma = NPEs[i,8],
+                                 logisSigma = NPEs[i,9],
+                                 PreviousExcitatoryInput = 0,
+                                 ExcitatoryInput =0,
+                                 InhibitoryInput = 0,
+                                 PreviousActivation = 0)
+      
     }
     
     for(i in 1:nrow(Connections)){
       connection.name <- paste(Connections[i,1],Connections[i,2],sep = "-")
       currentPostSinapticNPE <- Connections[i,2]
-      network[[currentPostSinapticNPE]]@InputConnections[[connection.name]] <- new("Connection", Name=connection.name,
-                                                                                   weight = Connections[i,3],
-                                                                                   alpha = Connections[i,4],
-                                                                                   beta = 0.12,  # Valor por defecto de beta
-                                                                                   alpha_prime = Connections[i,6],
-                                                                                   beta_prime = 0.12,  # Valor por defecto de beta prime
-                                                                                   preSinapticNPE = Connections[i,1])
+      network[[currentPostSinapticNPE]]@InputConnections[[connection.name]]<- new("Connection", Name=connection.name,
+                                                                                  weight = Connections[i,3],
+                                                                                  alpha = Connections[i,4],
+                                                                                  beta = 0.12,  # Valor por defecto de beta
+                                                                                  alpha_prime = Connections[i,6],
+                                                                                  beta_prime = 0.12,  # Valor por defecto de beta prime
+                                                                                  preSinapticNPE = Connections[i,1])
+      
     }
+    
+    n.input <- unlist(lapply(network, function(x) x@Layer %in% c('PrimarySensory', "US")))
+    
+    
+    if(class(saveData)!='list') stop('saveData must be a list with at least one member: either (Elements), a vector with npes and connections that you want to be saved, or (TimeSteps), a vector of timesteps to be saved') 
+    
+    if(!any(names(saveData)=='Elements')) {
+      saveData$Elements <- c(unname(unlist(lapply(network,FUN= function(x) if(!x@Layer %in% c('PrimarySensory', "US")) return(x@Name)))),
+                             unname(unlist(lapply(network,FUN= function(x) return(lapply(x@InputConnections, FUN = function(y) return(y@Name)))))))
+      
+    }
+    
+    if(!any(names(saveData)=='TimeSteps')) {
+      saveData$TimeSteps <- unique(TimeSteps$TimeStep)
+    }
+    
+    if(any(!saveData$Elements %in% union(NPEs[,1], paste(Connections[,1], Connections[,2], sep='-')))) stop('SaveData error. Trying to save at least one NPE or one Connection not in the network')
+    if(all(!saveData$TimeSteps %in% unique(TimeSteps$TimeStep))) stop("timesteps to be saved not equal to any created timesteps")
+    
+    
+    saveData$Elements <- union(names(n.input)[n.input],saveData$Elements)
+    
+    data.sim <- as.data.frame(matrix(nrow = length(which(TimeSteps$TimeStep %in% saveData$TimeSteps)), ncol = length(saveData$Elements) + 3))
+    
+    colnames(data.sim) <- c("Phase","Trial","TimeStep",saveData$Elements)
+    
     
     LearningRuleIsActive = F
     PreviousdCA1 = 0
     
     pb <- txtProgressBar(max = nrow(TimeSteps), style = 3)
     
-    current.phase <- 1
+    current.phase<- 1
+    t <- 0
     
     for(ts in 1:nrow(TimeSteps)){
       
       ### save phase, trial and timestep
-      data.sim[ts,1] <- TimeSteps[ts,1]
-      
-      if(ts>1 && TimeSteps[ts-1,1]!=TimeSteps[ts,1]){
-        current.phase = current.phase + 1
+      if(TimeSteps[ts,'TimeStep'] %in% saveData$TimeSteps) {
+        t<-t+1
+        data.sim[t,1]<- TimeSteps[ts,1]
+        data.sim[t,2]<- TimeSteps[ts,2]
+        data.sim[t,3]<- TimeSteps[ts,3]
       }
       
-      data.sim[ts,2] <- TimeSteps[ts,2]
-      data.sim[ts,3] <- TimeSteps[ts,3]
+      if(ts>1 && TimeSteps[ts-1,1]!=TimeSteps[ts,1]){
+        current.phase=current.phase+1
+      }
       
-      # reset activations if HasITI[current.phase] is false and trial onset
+      # reset activations ----
+      #if HasITI[current.phase] is false and trial onset
+      
+      
       if(TimeSteps[ts,3]==1 & !HasITI[current.phase]){
         for(i in 1:length(network)){
-          network[[i]]@Activation <- L(0, network[[i]]@logisSigma)
-          network[[i]]@ExcitatoryInput <- L(0, network[[i]]@logisSigma)
+          
+          network[[i]]@Activation<- L(0, network[[i]]@logisSigma)
+          network[[i]]@ExcitatoryInput<- L(0, network[[i]]@logisSigma)
         }
       }
       
-      ### reset input activations to zero
+      # reset input activations to zero ----
+      
       for (npu in 1:length(network)){
+        
         if(network[[npu]]@Layer == 'US' | network[[npu]]@Layer == 'PrimarySensory') {
           network[[npu]]@Activation = 0
         }
+        
       } 
       
-      # set inputs
+      # set inputs----
+      
       LearningRuleIsActive <- as.logical(TimeSteps[ts,ncol(TimeSteps)])
       
       for(unit in seq(4,ncol(TimeSteps)-1,2)){
+        
         network[[TimeSteps[ts,unit]]]@Activation <- TimeSteps[ts,unit+1]
+        
       }
       
-      # update activations to all members of the network list (scrambled) # asynchronous random
+      
+      
+      # update activations ----
+      # asynchronous random
+      
       scrambledNPEs <- sample(1:length(network),length(network),replace = F)
       
+      #scrambledNPEs <- 1:length(network) # asynchronous sequential
+      
       for(i in scrambledNPEs){
+        
         currentPostSinapticNPE <- network[[i]]@Name
         
         network[[i]]@PreviousActivation <- network[[i]]@Activation
+        
         network[[i]]@PreviousExcitatoryInput = network[[i]]@ExcitatoryInput
         
         if(network[[i]]@Layer=="US" | network[[i]]@Layer=="PrimarySensory") {
-          data.sim[ts,network[[i]]@Name] <- network[[i]]@Activation
-          next
-        }
+          if(TimeSteps[ts,'TimeStep'] %in% saveData$TimeSteps) data.sim[t,network[[i]]@Name] <- network[[i]]@Activation
+          next}
         
         #checks whether current NPE is connected to a US unit
+        
         npe.is.connected.to.an.active.US <- F
         
         if(length(network[[i]]@InputConnections)>0){
+          
           for(j in 1:length(network[[i]]@InputConnections)){
             pre <- network[[i]]@InputConnections[[j]]@preSinapticNPE
             if(network[[pre]]@Layer == "US" && network[[pre]]@Activation >0){
@@ -204,130 +308,185 @@ Simulate.DBP <- function(NPEs, Connections, TimeSteps, HasITI){
         
         if(npe.is.connected.to.an.active.US){
           # unconditional activation
+          # i is the index of the current unit, and pre is the index of the US unit
           network[[i]]@Activation = network[[pre]]@Activation
+          
         }
         else{
           # conditional activation
-          network[[i]]@Threshold <- rnorm(1,network[[i]]@mu,network[[i]]@sigma)
           
-          # compute excitatory and inhibitory inputs
-          if(length(network[[i]]@InputConnections)>0){
-            value <- c(0,0)
+          if(threshold == 'gaussian'){
             
-            for(j in 1:length(network[[i]]@InputConnections)){
-              pre <- network[[i]]@InputConnections[[j]]@preSinapticNPE
-              if(network[[pre]]@Type == "Excitatory"){
-                value[1] = value[1] + network[[pre]]@Activation * network[[i]]@InputConnections[[j]]@weight
-              }else{
-                value[2] = value[2] + network[[pre]]@Activation * network[[i]]@InputConnections[[j]]@weight
-              }
-            }
-            network[[i]]@ExcitatoryInput = value[1]
-            network[[i]]@InhibitoryInput = value[2]
+            network[[i]]@Threshold <- rnorm(1,network[[i]]@mu,network[[i]]@sigma)
+            
           }else{
-            network[[i]]@ExcitatoryInput = 0
-            network[[i]]@InhibitoryInput = 0
+            
+            p <- estBetaParams(network[[i]]@mu,network[[i]]@sigma)
+            
+            network[[i]]@Threshold <- rbeta(1,p$alpha,p$beta)
+            
           }
           
-          p_epsp = L(network[[i]]@ExcitatoryInput, network[[i]]@logisSigma)
           
-          if(is.nan(p_epsp)) browser()
+          # compute excitatory and inhibitory inputs
+          
+          inputs <- ComputeInputs(network[[i]])
+          
+          network[[i]]@ExcitatoryInput = inputs[1]
+          network[[i]]@InhibitoryInput = inputs[2]
+          
+          p_epsp = L(network[[i]]@ExcitatoryInput, network[[i]]@logisSigma)
           
           p_ipsp = ifelse(network[[i]]@InhibitoryInput == 0, 0, L(network[[i]]@InhibitoryInput, network[[i]]@logisSigma))
           
           if(network[[i]]@Layer!= "PrimarySensory" & network[[i]]@Layer!= "US"){
+            
             if(p_epsp > p_ipsp){
+              
               if(p_epsp >= network[[i]]@Threshold){
                 #Reactivation
                 network[[i]]@Activation = p_epsp + network[[i]]@TemporalSummation * L(network[[i]]@PreviousExcitatoryInput, network[[i]]@logisSigma) * (1 - p_epsp) - p_ipsp
+                #network[[i]]@Activation = L(network[[i]]@Activation + network[[i]]@ExcitatoryInput - network[[i]]@InhibitoryInput,network[[i]]@logisSigma)
               } else{
                 # decay
+                
                 network[[i]]@Activation = L(network[[i]]@PreviousExcitatoryInput, network[[i]]@logisSigma) - network[[i]]@ActivationDecay * L(network[[i]]@PreviousExcitatoryInput, network[[i]]@logisSigma)
+                #network[[i]]@Activation = network[[i]]@Activation - network[[i]]@ActivationDecay * network[[i]]@Activation * (1-network[[i]]@Activation)
+                #network[[i]]@Activation = (1-network[[i]]@ActivationDecay) * network[[i]]@Activation 
               }
+              
             }else{
               #inhibition
+              
               network[[i]]@Activation = 0
             }
-          }else{
-            network[[i]]@Activation = network[[i]]@Activation
+            
           }
         }
         
-        data.sim[ts,network[[i]]@Name] <- network[[i]]@Activation
+        if(network[[i]]@Name %in% saveData$Elements & 
+           TimeSteps[ts,'TimeStep'] %in% saveData$TimeSteps) data.sim[t,network[[i]]@Name] <- network[[i]]@Activation
+        
       }
       
-      # update weights to all members of the inputConnections list of all the NPEs
+      # update weights ----
+      
       if(LearningRuleIsActive){
-        dD = dVTA()
+        
+        dD= dVTA()
+        
         dH = dCA1(dD)
+        
         PreviousdCA1 = dH
         
         scrambledNPEs <- sample(1:length(network),length(network),replace = F)
         
         for(i in scrambledNPEs){
+          
           currentPostSinapticNPE <- network[[i]]@Name
           
-          if(network[[i]]@Layer=="US" | network[[i]]@Layer=="PrimarySensory") {next}
           
-          network[[i]]@r <- Compute.r(i)
+          # compute excitatory and inhibitory inputs
+          inputs <- ComputeInputs(network[[i]])
           
-          scrambleConnections <- sample(1:length(network[[i]]@InputConnections),length(network[[i]]@InputConnections),replace = F)
+          network[[i]]@ExcitatoryInput = inputs[1]
+          network[[i]]@InhibitoryInput = inputs[2]
           
-          if(network[[i]]@Layer %in% c("AssociativeSensory","Hippocampal")){
+          if(network[[currentPostSinapticNPE]]@Layer=="US" | network[[currentPostSinapticNPE]]@Layer=="PrimarySensory") {next}
+          
+          network[[currentPostSinapticNPE]]@r <- Compute.r(i)
+          
+          scrambledConnections <- sample(1:length(network[[currentPostSinapticNPE]]@InputConnections),length(network[[currentPostSinapticNPE]]@InputConnections),replace = F)
+          
+          if(network[[currentPostSinapticNPE]]@Layer %in% c("AssociativeSensory","Hippocampal")){
             d = dH
           }else{
             d = dD
           }
           
-          for (j in scrambleConnections){
+          for (j in scrambledConnections){
+            
             pre <- network[[i]]@InputConnections[[j]]@preSinapticNPE
             
             if(network[[pre]]@Layer != "US"){
+              
               if(d>0.001){
+                
                 if(network[[pre]]@Type == 'Excitatory'){
+                  
                   network[[i]]@InputConnections[[j]]@p <- ifelse(network[[i]]@ExcitatoryInput == 0, 0, network[[pre]]@Activation * network[[i]]@InputConnections[[j]]@weight / network[[i]]@ExcitatoryInput)
                   
-                  network[[i]]@InputConnections[[j]]@weight = network[[i]]@InputConnections[[j]]@weight + 
+                  network[[i]]@InputConnections[[j]]@weight = network[[i]]@InputConnections[[j]]@weight +
                     network[[i]]@InputConnections[[j]]@alpha*network[[i]]@r[1]*
                     network[[i]]@Activation*d*network[[i]]@InputConnections[[j]]@p
+                  
+                  
+                  
                 }else{
+                  
+                  
                   network[[i]]@InputConnections[[j]]@p <- ifelse(network[[i]]@InhibitoryInput == 0, 0, network[[pre]]@Activation * network[[i]]@InputConnections[[j]]@weight / network[[i]]@InhibitoryInput)
                   
-                  network[[i]]@InputConnections[[j]]@weight = network[[i]]@InputConnections[[j]]@weight + 
+                  network[[i]]@InputConnections[[j]]@weight = network[[i]]@InputConnections[[j]]@weight +
                     network[[i]]@InputConnections[[j]]@alpha_prime*network[[i]]@r[2]*
                     network[[i]]@Activation*d*network[[i]]@InputConnections[[j]]@p
+                  
+                  
                 }
+                
+                
+                
               }
               else{
-                network[[i]]@InputConnections[[j]]@weight = network[[i]]@InputConnections[[j]]@weight - 
-                  ifelse(network[[pre]]@Type == "Excitatory",
-                         network[[i]]@InputConnections[[j]]@beta, 
-                         network[[i]]@InputConnections[[j]]@beta_prime) *
-                  network[[i]]@InputConnections[[j]]@weight * network[[pre]]@Activation * 
+                
+                network[[i]]@InputConnections[[j]]@weight = network[[i]]@InputConnections[[j]]@weight -
+                  ifelse(network[[i]]@Type == "Excitatory",
+                         network[[i]]@InputConnections[[j]]@beta,
+                         network[[i]]@InputConnections[[j]]@beta_prime)*
+                  network[[i]]@InputConnections[[j]]@weight * network[[pre]]@Activation *
                   network[[i]]@Activation
               }
+              
+              
+              
             }
             
-            data.sim[ts,network[[i]]@InputConnections[[j]]@Name] <- network[[i]]@InputConnections[[j]]@weight
+            if(network[[i]]@InputConnections[[j]]@Name %in% saveData$Elements &
+               TimeSteps[ts,'TimeStep'] %in% saveData$TimeSteps) data.sim[t,network[[i]]@InputConnections[[j]]@Name] <- network[[i]]@InputConnections[[j]]@weight
           }
+          
         }
-      }else{
+        
+      }else{ # learning rule is not active
+        
         for(i in scrambledNPEs){
-          scrambleConnections <- sample(1:length(network[[i]]@InputConnections),length(network[[i]]@InputConnections),replace = F)
+          
+          scrambleConnections <- sample(1:length(network[[currentPostSinapticNPE]]@InputConnections),length(network[[currentPostSinapticNPE]]@InputConnections),replace = F)
           
           for (j in scrambleConnections){
-            data.sim[ts,network[[i]]@InputConnections[[j]]@Name] <- network[[i]]@InputConnections[[j]]@weight
+            
+            if(network[[currentPostSinapticNPE]]@InputConnections[[j]]@Name %in% saveData$Elements & 
+               TimeSteps[ts,'TimeStep'] %in% saveData$TimeSteps) data.sim[t,network[[currentPostSinapticNPE]]@InputConnections[[j]]@Name] <- network[[currentPostSinapticNPE]]@InputConnections[[j]]@weight
+            
           }
+          
         }
+        
       }
       
       setTxtProgressBar(pb, ts) 
     }
     return(data.sim)
+    
+    
+    
   }, 
-  error = function(e) e)
+  
+  error = function(e) print(e))
+  
 }
-##############################################################################################
+
+
 Create.Phases <- function(phases, trials){
   
   # phases is a character vector with comma delimited characters. For example,
@@ -474,6 +633,8 @@ Create.Phases <- function(phases, trials){
   columns <- suppressWarnings(which(!is.na(sapply(timesteps[1,], as.numeric))==T))
   
   timesteps[,columns]<-as.data.frame(apply(timesteps[,columns],2,as.numeric))
+  
+  colnames(timesteps)[1:3] <- c("Phase", 'Trial', "TimeStep")
   
   print("TimeSteps created")
   
