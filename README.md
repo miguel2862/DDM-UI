@@ -19,7 +19,9 @@ The Diffuse Discrepancy Model (DiffDiscM) Simulator is an innovative, open-sourc
 - 🔄 Incorporates hippocampal and dopaminergic systems for comprehensive learning simulations
 
 ## 💻 R Version (All Platforms)
-Just download and run: [DDM_UI.R](R/DDM_UI.R)
+Just download and run:
+- Latest version: [DDM_UI (2025).R](R/DDM_UI%20(2025).R)
+- Previous version: [DDM_UI.R](R/DDM_UI.R)
 - Contains all required packages
 - Compatible with Windows, macOS, and Linux
 - Run directly through R/RStudio
