@@ -9,7 +9,7 @@
 
 ## 🌟 About
 
-The Diffuse Discrepancy Model (DDM) Simulator is an innovative, open-source tool designed for researchers in behavioral sciences. Based on the seminal work of Donahoe, Burgos and Palmer (1993), it provides a connectionist interpretation of the unified principle of reinforcement for both operant and Pavlovian conditioning.
+The Diffuse Discrepancy Model (DiffDiscM) Simulator is an innovative, open-source tool designed for researchers in behavioral sciences. Based on the seminal work of Donahoe, Burgos and Palmer (1993), it provides a connectionist interpretation of the unified principle of reinforcement for both operant and Pavlovian conditioning.
 
 ## 🚀 Key Features
 
@@ -18,7 +18,13 @@ The Diffuse Discrepancy Model (DDM) Simulator is an innovative, open-source tool
 - 💡 Models neural processing units (NPUs) using advanced activation and learning rules
 - 🔄 Incorporates hippocampal and dopaminergic systems for comprehensive learning simulations
 
-## 💻 Installation
+## 💻 R Version (All Platforms)
+Just download and run: [DDM_UI.R](R/DDM_UI.R)
+- Contains all required packages
+- Compatible with Windows, macOS, and Linux
+- Run directly through R/RStudio
+
+## 💻 Windows Installer
 
 1. Download the installer:
    - [English Version (v0.05)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
@@ -43,13 +49,13 @@ The Diffuse Discrepancy Model (DDM) Simulator is an innovative, open-source tool
 
 ## 📚 Documentation
 
-The DDM Simulator comes with comprehensive documentation to help you get started and make the most of its features:
+The DiffDiscM Simulator comes with comprehensive documentation to help you get started and make the most of its features:
 
 ### User Interface Overview
 
 The simulator's interface is divided into several key sections:
 
-1. **Home**: Provides an introduction to the DDM and its capabilities.
+1. **Home**: Provides an introduction to the DiffDiscM and its capabilities.
 2. **Network Architecture**: Allows you to define and visualize the neural network structure.
 3. **Create Trials**: Design experimental trials with specific stimuli and timings.
 4. **Configure Contingencies**: Set up the experimental conditions and phases.
@@ -71,7 +77,7 @@ For an in-depth understanding of the Diffuse Discrepancy Model and its applicati
 
 [Autoshaped impulsivity: Some explorations with a neural network model](https://www.sciencedirect.com/science/article/abs/pii/S037663572400055X?via%3Dihub)
 
-This article provides valuable insights into the theoretical foundations of the DDM. Please note that a more comprehensive article focusing specifically on the model is currently in preparation and will be linked here upon publication.
+This article provides valuable insights into the theoretical foundations of the DiffDiscM. Please note that a more comprehensive article focusing specifically on the model is currently in preparation and will be linked here upon publication.
 
 ### Example Simulation
 
@@ -88,7 +94,7 @@ For more detailed instructions and in-depth information, refer to the comprehens
 
 ## 🛠️ Open Science & Development
 
-We embrace the principles of open science. The DDM Simulator is designed to be modified, extended, and improved by the scientific community:
+We embrace the principles of open science. The DiffDiscM Simulator is designed to be modified, extended, and improved by the scientific community:
 
 - Explore and modify the R code: [DDM_UI.R](R/DDM_UI.R)
 - Add new functions, graphics, or analysis tools
