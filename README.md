@@ -22,10 +22,10 @@ The Diffuse Discrepancy Model (DiffDiscM) Simulator is an innovative, open-sourc
 
 ### 1. Online Version (Simplified)
 Access instantly through your browser:
-- [DDM Simulator on shinyapps.io](https://miguel2862.shinyapps.io/ddm-ui/)
+- [DDM-UI online](https://miguel2862.shinyapps.io/ddm-ui/)
 - No installation required
 - Key limitations:
-  - Cannot save/load files locally
+  - Cannot load files locally
   - Limited to web session storage
   - Best for quick simulations and learning
 
@@ -78,7 +78,7 @@ Download and run locally:
 ## 🏁 Quick Start
 
 ### Online Version
-1. Visit [https://miguel2862.shinyapps.io/ddm-ui/](https://miguel2862.shinyapps.io/ddm-ui/)
+1. Enter to [DDM-UI online](https://miguel2862.shinyapps.io/ddm-ui/)
 2. Configure your simulation directly in the browser
 3. Download results as needed
 4. Note: All configurations will be lost when closing the browser
