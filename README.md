@@ -25,6 +25,8 @@ The Diffuse Discrepancy Model (DiffDiscM) Simulator is an innovative, open-sourc
 Access instantly through your browser:
 - [DDM-UI online](https://miguel2862.shinyapps.io/ddm-ui/)
 - No installation required
+- Fully responsive design: works seamlessly on desktop, tablet, and mobile devices
+- Access from any modern web browser
 - Key limitations:
   - Cannot load files locally
   - Limited to web session storage
