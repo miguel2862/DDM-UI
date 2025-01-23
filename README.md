@@ -18,15 +18,29 @@ The Diffuse Discrepancy Model (DiffDiscM) Simulator is an innovative, open-sourc
 - 💡 Models neural processing units (NPUs) using advanced activation and learning rules
 - 🔄 Incorporates hippocampal and dopaminergic systems for comprehensive learning simulations
 
-## 💻 R Version (All Platforms)
-Just download and run:
+## 💻 Access Options
+
+### 1. Online Version (Simplified)
+Access instantly through your browser:
+- [DDM Simulator on shinyapps.io](https://miguel2862.shinyapps.io/ddm-ui/)
+- No installation required
+- Key limitations:
+  - Cannot save/load files locally
+  - Limited to web session storage
+  - Best for quick simulations and learning
+
+### 2. R Version (Full Features)
+Download and run locally:
 - Latest version: [DDM_UI (2025).R](R/DDM_UI%20(2025).R)
 - Previous version: [DDM_UI.R](R/DDM_UI.R)
-- Contains all required packages
+- Full functionality including:
+  - Save/load simulations
+  - Import/export configurations
+  - Persistent storage
 - Compatible with Windows, macOS, and Linux
 - Run directly through R/RStudio
 
-## 💻 Windows Installer
+### 3. Windows Installer
 
 1. Download the installer:
    - [English Version (v0.05)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
@@ -39,15 +53,40 @@ Just download and run:
 
 ## 🖥️ System Requirements
 
+### For Online Version
+- Modern web browser
+- Internet connection
+- No local installation needed
+
+### For Local Installation
 - Windows 10 or later
 - 4 GB RAM (8 GB recommended)
 - 500 MB free disk space
 
+## 🔄 Version Differences
+
+| Feature              | shinyapps.io | Local R/Installer |
+|---------------------|--------------|------------------|
+| Installation        | None needed  | Required        |
+| File Storage        | Web session only | Local storage |
+| Save Configurations | No           | Yes             |
+| Load Saved Files    | No           | Yes             |
+| Results Download    | Yes (CSV)    | Yes (Multiple formats) |
+| Performance         | Network dependent | Local processing |
+| Accessibility      | Any browser  | Requires R/installation |
+
 ## 🏁 Quick Start
 
-1. Navigate to the installed directory.
-2. Run the DDM Simulator shortcut or execute DDM.R using the provided R portable.
-3. Follow the on-screen instructions to set up your simulation.
+### Online Version
+1. Visit [https://miguel2862.shinyapps.io/ddm-ui/](https://miguel2862.shinyapps.io/ddm-ui/)
+2. Configure your simulation directly in the browser
+3. Download results as needed
+4. Note: All configurations will be lost when closing the browser
+
+### Local Installation
+1. Navigate to the installed directory
+2. Run the DDM Simulator shortcut or execute DDM.R using the provided R portable
+3. Follow the on-screen instructions to set up your simulation
 
 ## 📚 Documentation
 
@@ -130,6 +169,13 @@ We extend our heartfelt gratitude to:
 
 ## 🆘 Troubleshooting
 
+### Online Version Issues
+- Clear browser cache if experiencing display problems
+- Check internet connection
+- Try a different modern browser
+- For persistent issues, switch to the local version
+
+### Local Version Issues
 If you encounter any issues, please check the Help section within the simulator. For further assistance, contact our support team via email at miguel.aguayo@academicos.udg.mx or aguayo@iteso.mx.
 
 ---
