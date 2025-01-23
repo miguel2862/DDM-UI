@@ -68,7 +68,7 @@ Download and run locally:
 
 ## 🔄 Version Differences
 
-| Feature              | shinyapps.io | Local R/Installer |
+| Feature              | Online | Local R/Installer |
 |---------------------|--------------|------------------|
 | Installation        | None needed  | Required        |
 | File Storage        | Web session only | Local storage |
