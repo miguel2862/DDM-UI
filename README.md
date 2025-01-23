@@ -6,6 +6,7 @@
 [![Open Science](https://img.shields.io/badge/Open-Science-blue.svg)](https://en.wikipedia.org/wiki/Open_science)
 [![Latest Installer](https://img.shields.io/badge/Latest_Installer_(EN)-v0.05-green.svg)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
 [![R Code](https://img.shields.io/badge/R_Code-Download-blue.svg)](R/DDM_UI%20(2025).R)
+[![Online Version](https://img.shields.io/badge/Online_Version-Launch-blue.svg)](https://miguel2862.shinyapps.io/ddm-ui/)
 
 ## 🌟 About
 
@@ -126,7 +127,7 @@ To get started with a pre-configured simulation:
 
 1. Navigate to the 'Simulate' section in the interface.
 2. In the 'Simulation File Name' field, enter: `Extinction_example`
-3. For the 'Simulation Directory Path', use: `Simulation example/Extinction_example.rds`
+3. For the 'Simulation Directory Path', example: `Simulations/first_simulation`
 4. Click 'Load Simulation' to begin.
 
 [Download Example Simulation File](Simulation%20example/Extinction_example.rds)
