@@ -119,9 +119,9 @@ Within the simulator, you can access the "Help" section, which offers:
 
 For an in-depth understanding of the Diffuse Discrepancy Model and its applications, we recommend the following article:
 
-[Autoshaped impulsivity: Some explorations with a neural network model](https://www.sciencedirect.com/science/article/abs/pii/S037663572400055X?via%3Dihub)
+[DDM-UI: A user interface in R for the discrepancy diffuse model in behavioral research](https://link.springer.com/article/10.3758/s13428-025-02648-9)
 
-This article provides valuable insights into the theoretical foundations of the DiffDiscM. Please note that a more comprehensive article focusing specifically on the model is currently in preparation and will be linked here upon publication.
+This article provides valuable insights into the theoretical foundations of the DiffDiscM.
 
 ### Example Simulation
 
