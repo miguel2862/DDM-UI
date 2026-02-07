@@ -1,188 +1,151 @@
 # DDM-UI <img src="images/icon.ico" alt="DDM Simulator Logo" width="120" align="right"/>
 
-> Advancing behavioral science through open simulation
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Open Science](https://img.shields.io/badge/Open-Science-blue.svg)](https://en.wikipedia.org/wiki/Open_science)
-[![Latest Installer](https://img.shields.io/badge/Latest_Installer_(EN)-v0.05-green.svg)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
+[![Latest Installer (EN)](https://img.shields.io/badge/Latest_Installer_(EN)-v0.05-green.svg)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
 [![R Code](https://img.shields.io/badge/R_Code-Download-blue.svg)](R/DDM_UI%20(2025).R)
 [![Online Version](https://img.shields.io/badge/Online_Version-Launch-blue.svg)](https://miguel2862.shinyapps.io/ddm-ui/)
 
-## 🌟 About
+DDM-UI is an R/Shiny interface for the Diffuse Discrepancy Model (DiffDiscM) described by Donahoe, Burgos, and Palmer (1993). It is intended for behavioral research on Pavlovian and operant conditioning under a connectionist framework.
 
-The Diffuse Discrepancy Model (DiffDiscM) Simulator is an innovative, open-source tool designed for researchers in behavioral sciences. Based on the seminal work of Donahoe, Burgos and Palmer (1993), it provides a connectionist interpretation of the unified principle of reinforcement for both operant and Pavlovian conditioning.
+## Reference
 
-## 🚀 Key Features
+Aguayo-Mendoza, M. A. (2025). *DDM-UI: A user interface in R for the discrepancy diffuse model in behavioral research*.
+[Behavior Research Methods](https://link.springer.com/article/10.3758/s13428-025-02648-9)
 
-- 🧠 Simulates Pavlovian and operant conditioning
-- 🔬 Grounded in neuroanatomy and neurophysiology principles
-- 💡 Models neural processing units (NPUs) using advanced activation and learning rules
-- 🔄 Incorporates hippocampal and dopaminergic systems for comprehensive learning simulations
+Original SelNet source code (Pascal): [jeburgos-selnet/source-code](https://github.com/jeburgos-selnet/source-code)
 
-## 💻 Access Options
+## Access Options
 
-### 1. Online Version (Simplified)
-Access instantly through your browser:
+### 1. Online version
 - [DDM-UI online](https://miguel2862.shinyapps.io/ddm-ui/)
-- No installation required
-- Fully responsive design: works seamlessly on desktop, tablet, and mobile devices
-- Access from any modern web browser
-- Key limitations:
-  - Cannot load files locally
-  - Limited to web session storage
-  - Best for quick simulations and learning
+- No local installation
+- Suitable for quick exploration
+- Limitation: local file import/export is restricted by browser/session context
 
-### 2. R Version (Full Features)
-Download and run locally:
-- Latest version: [DDM_UI (2025).R](R/DDM_UI%20(2025).R)
-- Previous version: [DDM_UI.R](R/DDM_UI.R)
-- Full functionality including:
-  - Save/load simulations
-  - Import/export configurations
-  - Persistent storage
-- Compatible with Windows, macOS, and Linux
-- Run directly through R/RStudio
+### 2. Local R version (recommended for full workflow)
+- Current script: [R/DDM_UI (2025).R](R/DDM_UI%20(2025).R)
+- Legacy script: [R/DDM_UI.R](R/DDM_UI.R)
+- Full import/export and persistent local storage
+- Compatible with Windows, macOS, and Linux (R/RStudio)
 
-### 3. Windows Installer
+### 3. Windows installer
+- [English installer (v0.05)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
+- [Spanish installer (v0.04)](https://drive.google.com/file/d/1gy456KA_bwoXmhocAvuYWLrurgJ-OUnx/view?usp=sharing)
 
-1. Download the installer:
-   - [English Version (v0.05)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
-   - [Spanish Version (v0.04)](https://drive.google.com/file/d/1gy456KA_bwoXmhocAvuYWLrurgJ-OUnx/view?usp=sharing)
-2. Run the installer and follow the on-screen instructions.
-3. The installer will create a folder containing:
-   - R portable
-   - DDM.R file
-   - Other necessary components
+## Quick Start (Local)
 
-## 🖥️ System Requirements
+1. Open `R/DDM_UI (2025).R` in RStudio.
+2. Run:
 
-### For Online Version
-- Modern web browser
-- Internet connection
-- No local installation needed
+```r
+shiny::runApp('R/DDM_UI (2025).R')
+```
 
-### For Local Installation
-- Windows 10 or later
-- 4 GB RAM (8 GB recommended)
-- 500 MB free disk space
+3. Use the workflow tabs in order:
+- Home
+- Network Architecture
+- Create Trials
+- Configure Contingencies
+- Simulate
+- Individual Results / General Results
 
-## 🔄 Version Differences
+4. Optional: load the example simulation file:
+- [Simulation example/Extinction_example.rds](Simulation%20example/Extinction_example.rds)
 
-| Feature              | Online | Local R/Installer |
-|---------------------|--------------|------------------|
-| Installation        | None needed  | Required        |
-| File Storage        | Web session only | Local storage |
-| Save Configurations | No           | Yes             |
-| Load Saved Files    | No           | Yes             |
-| Results Download    | Yes (CSV)    | Yes (Multiple formats) |
-| Performance         | Network dependent | Local processing |
-| Accessibility      | Any browser  | Requires R/installation |
+## Mathematical Core (Implemented Model)
 
-## 🏁 Quick Start
+The interface implements the model logic reported in the appendices and the Donahoe-Burgos-Palmer framework, including timestep-wise activation dynamics and discrepancy-driven weight adaptation.
 
-### Online Version
-1. Enter to [DDM-UI online](https://miguel2862.shinyapps.io/ddm-ui/)
-2. Configure your simulation directly in the browser
-3. Download results as needed
-4. Note: All configurations will be lost when closing the browser
+### Activation rule
+For each non-input unit \(i\) at time \(t\):
 
-### Local Installation
-1. Navigate to the installed directory
-2. Run the DDM Simulator shortcut or execute DDM.R using the provided R portable
-3. Follow the on-screen instructions to set up your simulation
+\[
+L(x,\sigma)=\frac{1}{1+\exp\left(\frac{-x+0.5}{\sigma}\right)}
+\]
 
-## 📚 Documentation
+- Excitatory and inhibitory inputs are aggregated from presynaptic activity and current weights.
+- A stochastic threshold \(\theta_{i,t}\) is sampled (Gaussian or Beta option).
+- If excitation dominates inhibition and exceeds threshold, activation is updated with temporal summation.
+- Otherwise activation decays or is inhibited to zero, depending on the excitation/inhibition comparison.
 
-The DiffDiscM Simulator comes with comprehensive documentation to help you get started and make the most of its features:
+A compact form of the reactivation branch is:
 
-### User Interface Overview
+\[
+a_{i,t}=p_{\mathrm{epsp},i,t}+\tau_i\,L(E_{i,t-1},\sigma_i)\,(1-p_{\mathrm{epsp},i,t})-p_{\mathrm{ipsp},i,t}
+\]
 
-The simulator's interface is divided into several key sections:
+where \(\tau_i\) is temporal summation.
 
-1. **Home**: Provides an introduction to the DiffDiscM and its capabilities.
-2. **Network Architecture**: Allows you to define and visualize the neural network structure.
-3. **Create Trials**: Design experimental trials with specific stimuli and timings.
-4. **Configure Contingencies**: Set up the experimental conditions and phases.
-5. **Simulate**: Run your designed experiments and observe the results.
-6. **Individual Results**: Analyze the outcomes for individual simulations.
-7. **General Results**: View aggregated results across multiple simulations.
+### Discrepancy signals
+The implementation computes dopaminergic and hippocampal discrepancy terms:
 
-### Help Section
+\[
+d_{D,t}=\frac{1}{N_D}\sum_{k\in D}(a_{k,t}-a_{k,t-1})
+\]
 
-Within the simulator, you can access the "Help" section, which offers:
+\[
+d_{H,t}=\frac{1}{N_H}\sum_{k\in H}|a_{k,t}-a_{k,t-1}|+d_{D,t}(1-d_{H,t-1})
+\]
 
-- Detailed explanations of each component and parameter
-- Step-by-step guides for common tasks
-- Troubleshooting tips and FAQs
+### Learning rule
+For connection \(j\rightarrow i\) with weight \(w_{ij,t}\):
 
-### Theoretical Background
+If discrepancy is above criterion (\(d_t\geq\delta\)), weights increase proportionally to activity, discrepancy, and remaining capacity term \(r_i\).
 
-For an in-depth understanding of the Diffuse Discrepancy Model and its applications, we recommend the following article:
+If discrepancy is below criterion (\(d_t<\delta\)), weights decrease multiplicatively:
 
-[DDM-UI: A user interface in R for the discrepancy diffuse model in behavioral research](https://link.springer.com/article/10.3758/s13428-025-02648-9)
+\[
+w_{ij,t+1}=w_{ij,t}-\beta\,w_{ij,t}\,a_{j,t}\,a_{i,t}
+\]
 
-This article provides valuable insights into the theoretical foundations of the DiffDiscM.
+(and analogously with \(\beta'\) for inhibitory links).
 
-### Example Simulation
+In documentation/examples, decrement parameters are represented as \(\beta=0.1\) and \(\beta'=0.1\).
 
-To get started with a pre-configured simulation:
+## 2026 Update Summary
 
-1. Navigate to the 'Simulate' section in the interface.
-2. In the 'Simulation File Name' field, enter: `Extinction_example`
-3. For the 'Simulation Directory Path', example: `Simulations/first_simulation`
-4. Click 'Load Simulation' to begin.
+The current update focuses on interface clarity, reproducibility, and robustness while preserving the model structure.
 
-[Download Example Simulation File](Simulation%20example/Extinction_example.rds)
+- Full UI text review in English for consistency.
+- Help icons now trigger modal explanations reliably.
+- Beginner/Advanced mode separation for parameter exposure.
+- Path handling improved (optional paths + quick shortcuts).
+- Network visualization revised (clean white canvas, export support, stable layout controls).
+- Phase order in plots now follows contingency order (e.g., Training before Extinction).
+- Simulation pipeline hardened for imported objects (including tibble/data.frame normalization).
+- Plot rendering adjusted for stable line visibility and cleaner interactive behavior.
 
-For more detailed instructions and in-depth information, refer to the comprehensive documentation within the simulator.
+## Repository Structure
 
-## 🛠️ Open Science & Development
+- `R/DDM_UI (2025).R`: current application code.
+- `R/DDM_UI.R`: previous version for comparison.
+- `Simulation example/`: example simulation files.
+- `images/`: assets.
+- `scripts/`: utility and verification scripts.
 
-We embrace the principles of open science. The DiffDiscM Simulator is designed to be modified, extended, and improved by the scientific community:
+## Open Science
 
-- Explore and modify the R code: [DDM_UI.R](R/DDM_UI.R)
-- Add new functions, graphics, or analysis tools
-- Customize the user interface
-- Implement new file formats or data structures
+This project is released under MIT and intended for extension by the research community.
 
-We encourage researchers to fork the repository, make improvements, and share their work with the community. Together, we can advance the field of behavioral science through collaborative development and open sharing of knowledge.
+- Add new simulation templates.
+- Extend analysis/visualization modules.
+- Adapt file schemas for lab pipelines.
+- Contribute improvements through forks and pull requests.
 
-The original SelNet code, written in Pascal, is also available at [https://github.com/jeburgos-selnet/source-code](https://github.com/jeburgos-selnet/source-code)
+## License
 
-## 📄 License
+MIT License. See [LICENSE](LICENSE).
 
-This project is licensed under the MIT License, promoting open and collaborative science. See the [LICENSE](LICENSE) file for details.
-
-## 📞 Contact
-
-For inquiries or collaboration opportunities:
+## Contact
 
 **Miguel Ángel Aguayo Mendoza**  
-📧 Email: miguel.aguayo@academicos.udg.mx or aguayo@iteso.mx  
-🏫 University of Guadalajara
+Email: miguel.aguayo@academicos.udg.mx / aguayo@iteso.mx  
+University of Guadalajara  
+Laboratory site: [CEIC](http://www.ceic.cucba.udg.mx/Investigacion/laboratorios?id=13)
 
-Discover more about our research at our [laboratory website](http://www.ceic.cucba.udg.mx/Investigacion/laboratorios?id=13).
+## Acknowledgements
 
-## 🙏 Acknowledgements
-
-We extend our heartfelt gratitude to:
-
-- The **Laboratory for Experimental and Theoretical Research in Learning, Conditioning, and Adaptive Behavior**, led by Dr. Jose Enrique Burgos Triano, for their invaluable support and guidance.
-- Cristiano Valerio Dos Santos from the Centro de Estudios e Investigaciones en Comportamiento (CEIC) for his significant contribution to the model's code and logic, skillfully adapting the work of Donahoe, Burgos and Palmer (1993) to R.
-
-## 🆘 Troubleshooting
-
-### Online Version Issues
-- Clear browser cache if experiencing display problems
-- Check internet connection
-- Try a different modern browser
-- For persistent issues, switch to the local version
-
-### Local Version Issues
-If you encounter any issues, please check the Help section within the simulator. For further assistance, contact our support team via email at miguel.aguayo@academicos.udg.mx or aguayo@iteso.mx.
-
----
-
-<p align="center">
-  Advancing behavioral science through open collaboration and simulation
-</p>
+- Laboratory for Experimental and Theoretical Research in Learning, Conditioning, and Adaptive Behavior (CEIC).
+- Dr. José Enrique Burgos Triano.
+- Cristiano Valerio Dos Santos, for adaptation and support in model logic/code integration.
