@@ -15,10 +15,21 @@ The Diffuse Discrepancy Model (DiffDiscM) Simulator is an open-source tool for b
 
 ## Key Features
 
+### Core model capabilities
+
 - Simulates Pavlovian and operant conditioning.
 - Uses neurocomputational units (NPUs) with activation, temporal summation, and decay dynamics.
 - Implements discrepancy-driven learning through dopaminergic and hippocampal signals.
 - Supports architecture design, trial creation, contingency programming, simulation, and result visualization in one workflow.
+
+### New in 2026
+
+- **Beginner/Advanced modes** to separate essential vs full parameter exposure.
+- **One-click example loading workflow** (including root-path selection for local files and quick path shortcuts).
+- **Improved UI guidance** with workflow strip + contextual hints across tabs.
+- **More reliable help system** (help icons open modal explanations consistently).
+- **Refined network visualization** (cleaner styling, better layout handling, export-ready canvas).
+- **Plot workflow improvements** (phase order follows contingency sequence, clearer interactive behavior).
 
 ## Access Options
 
@@ -117,7 +128,7 @@ To load a pre-configured simulation:
 
 1. Go to **Simulate**.
 2. In **Simulation File Name**, enter: `Extinction_example`
-3. In **Simulation Directory Path**, set the folder that contains the file.
+3. In **Simulation Directory Path**, set the root folder that contains the file (or use Home shortcuts to auto-fill paths).
 4. Click **Load Simulation**.
 
 Example file: [Simulation example/Extinction_example.rds](Simulation%20example/Extinction_example.rds)
@@ -179,6 +190,21 @@ For reporting and examples in this documentation:
 $$
 \beta=0.1, \quad \beta'=0.1
 $$
+
+## Appendix-Based Core Functions (Brief Implementation Map)
+
+This interface follows the appendix logic from the published model. The article contains the full theoretical derivation; here is a concise mapping between equations and implemented functions:
+
+- `Simulate.DBP()`: main simulation engine; iterates through timesteps, updates activations, computes discrepancy signals, and updates connection weights.
+- `Create.Phases()`: builds the full timestep schedule from contingencies/trials, including optional ITI structure.
+- `L(x, sigma)`: logistic transform used in activation and input-related update terms.
+- `ComputeInputs()`: computes excitatory and inhibitory input totals from presynaptic activity and current weights.
+- `dVTA()`: computes dopaminergic discrepancy from timestep-to-timestep activation change in dopaminergic units.
+- `dCA1()`: computes hippocampal discrepancy and combines it with dopaminergic discrepancy as specified by the model logic.
+- `Compute.r()`: computes residual capacity terms used in discrepancy-driven weight increment.
+- `estBetaParams()`: optional helper for Beta-distributed threshold sampling from mean/deviation parameters.
+
+In short, the implementation keeps the original flow: build phases → update activations per timestep → compute discrepancy terms → apply learning rule (increment/decrement) → store trajectories for analysis.
 
 ## 2026 Change Log (UI and Workflow)
 
@@ -245,6 +271,11 @@ Laboratory website: [CEIC](http://www.ceic.cucba.udg.mx/Investigacion/laboratori
 - Use the in-app Help section for field-by-field guidance.
 
 ---
+
+<p align="center">
+Advancing behavioral science through open collaboration and simulation
+</p>
+
 
 <p align="center">
 Advancing behavioral science through open collaboration and simulation
