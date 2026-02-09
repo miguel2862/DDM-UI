@@ -4,8 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Open Science](https://img.shields.io/badge/Open-Science-blue.svg)](https://en.wikipedia.org/wiki/Open_science)
-[![Download for macOS](https://img.shields.io/badge/Download-macOS_(arm64)-000000?logo=apple&logoColor=white)](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI-3.0.0-arm64.dmg)
-[![Download for Windows](https://img.shields.io/badge/Download-Windows_(x64)-0078D4?logo=windows&logoColor=white)](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.Setup.3.0.0.exe)
+[![Download for macOS](https://img.shields.io/badge/Download-macOS_(arm64)-000000?logo=apple&logoColor=white)](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.dmg)
+[![Download for Windows](https://img.shields.io/badge/Download-Windows_(x64)-0078D4?logo=windows&logoColor=white)](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.exe)
 [![R Code (2026)](https://img.shields.io/badge/R_Code_(2026)-Download-blue.svg)](https://github.com/miguel2862/DDM-UI/blob/main/R/DDM_UI%20(2026).R)
 [![R Code (2025)](https://img.shields.io/badge/R_Code_(2025)-Download-lightgrey.svg)](R/DDM_UI%20(2025).R)
 [![Online Version](https://img.shields.io/badge/Online_Version-Launch-blue.svg)](https://miguel2862.shinyapps.io/ddm-ui/)
@@ -18,76 +18,181 @@ The Diffuse Discrepancy Model (DiffDiscM) Simulator is an open-source tool for b
 
 ---
 
-## DDM-UI v3.0 — Desktop Application
+## DDM-UI v3.0 — Standalone Desktop Application
 
-**The biggest update in DDM-UI history.** Version 3.0 is a complete redesign: a standalone desktop application built from the ground up with a modern React interface and the full R simulation engine running locally inside the app. No dependencies, no installation of R, no configuration. Just download, install, and run.
+**The biggest update in DDM-UI history.** Version 3.0 is a complete ground-up redesign: a standalone desktop application that bundles a modern React interface with the full R simulation engine running locally. No dependencies. No installation of R. No configuration. Download, install, and run.
 
-### Download Installers
+### Download
 
-| Platform | Installer | Size | SHA-256 |
-|---|---|---|---|
-| **macOS** (Apple Silicon) | [DDM-UI-3.0.0-arm64.dmg](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI-3.0.0-arm64.dmg) | ~389 MB | `4322c73a6eb5fdd96184e38d1f2466de72d311e3b72e613baf506ce8d6ad8c42` |
-| **Windows** (64-bit) | [DDM-UI Setup 3.0.0.exe](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.Setup.3.0.0.exe) | ~261 MB | `d81186a00636bfb9940b3b7b3243e0e987b4b023d0f9c8ae70539343e9348d35` |
+| Platform | Installer | SHA-256 |
+|---|---|---|
+| **macOS** (Apple Silicon) | [**DDM-UI.dmg**](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.dmg) | `4322c73a6eb5fdd96184e38d1f2466de72d311e3b72e613baf506ce8d6ad8c42` |
+| **Windows** (64-bit) | [**DDM-UI.exe**](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.exe) | `d81186a00636bfb9940b3b7b3243e0e987b4b023d0f9c8ae70539343e9348d35` |
 
-> Both installers are **fully self-contained**: they bundle R Portable with all required packages. The user does not need R, RStudio, or any other software installed. Just double-click and go.
+> [All releases](https://github.com/miguel2862/DDM-UI/releases/tag/3.0)
 
-### What's New in v3.0
+Both installers are **fully self-contained**. They bundle **R Portable** with all 84+ required packages pre-installed (plumber, jsonlite, dplyr, igraph, tidygraph, ggraph, visNetwork, httpuv, Rcpp, and all transitive dependencies). The user does not need R, RStudio, or any other software. Double-click and the simulation engine starts automatically.
+
+---
+
+### What's Inside v3.0
 
 #### Completely New Interface
 
-- **Modern React frontend** built with TypeScript, Tailwind CSS v4, and Framer Motion animations.
-- **Dark theme** designed for extended work sessions (navy-900 background with cyan/teal accents).
-- **7 integrated pages**: Dashboard, Network Builder, Trial Designer, Simulation, Results, Parameter Sweep, and Help.
-- **Bilingual support**: full English and Spanish interface with one-click language switching (persisted across sessions).
+The entire user interface has been rebuilt from scratch using modern web technologies:
 
-#### Visual Network Builder
+- **React 18 + TypeScript** with strict typing across the entire codebase.
+- **Tailwind CSS v4** for a consistent, responsive design system.
+- **Framer Motion** for fluid page transitions, staggered list animations, pulsing glows, and interactive hover/tap effects throughout the application.
+- **Dark theme** optimized for extended research sessions: deep navy background (#0f172a) with cyan and teal accent colors, carefully tuned contrast ratios across all elements.
+- **Lucide icon library** for clean, consistent iconography in every control.
 
-- **Drag-and-drop editor** powered by React Flow for designing neural architectures.
-- Visually create, connect, and configure NPEs (neurocomputational processing elements) and connections.
-- Academic brain-inspired layer layout: US, Primary Sensory, Associative, Motor.
-- JSON import/export for saving and sharing network architectures.
+#### Bilingual Interface (English / Spanish)
 
-#### Trial Designer
+Full internationalization with one-click language switching. Every label, button, tooltip, description, template name, status message, and error message is translated. The language preference is persisted across sessions via localStorage. Translations cover over 200 UI strings organized by section (dashboard, network, trial, simulation, results, parameter sweep, splash screen).
 
-- Create trial types with precise timestep-by-timestep stimulus schedules.
-- Design experimental phases with multiple trial types and contingencies.
-- Visual timeline editor for intuitive trial construction.
+#### Animated Splash Screen
 
-#### Live Simulation
+On launch, an animated splash screen displays for 4.5 seconds with:
+- Gradient-filled network icon with animated stroke
+- Staggered text entrance animations
+- Credits, university, and version information
+- An animated loading progress bar
+- Version history button opening a modal with the full changelog across all releases
 
-- **Real-time execution controls**: play, pause, step-through, and skip.
-- Watch NPE activations and connection weights update live during simulation.
-- Visual network overlay showing activation levels in real time.
+#### Beginner / Advanced Mode
 
-#### Results & Analysis
+A global toggle in the sidebar switches between:
+- **Beginner mode**: exposes only essential parameters (unit name, type, layer, connection source/target/weight). Ideal for students and demonstrations.
+- **Advanced mode**: reveals all free parameters for fine-grained control over the simulation (activation, temporal summation, activation decay, mean, standard deviation, logistic sigma for NPEs; alpha, beta, alpha prime, beta prime learning rates for connections; P-update procedure and discrepancy criterion for simulation).
 
-- **Multi-format charts**: line, bar, and scatter plots with Recharts.
-- Filter by phase, trial type, or individual NPEs/connections.
-- **CSV export** for further analysis in external tools.
-- Interactive tooltips and legends for detailed data inspection.
+---
 
-#### Parameter Sweep
+### Pages in Detail
 
-- Systematic parameter exploration across configurable ranges.
-- Sweep connection weights, NPE properties, or learning rates.
-- Compare results across parameter sets in unified visualizations.
+DDM-UI v3.0 has **7 integrated pages**, each handling a stage of the modeling workflow:
 
-#### Standalone Desktop Application
+#### 1. Dashboard
 
-- **Electron shell** wrapping the React frontend + R Plumber backend.
-- **R Portable** bundled inside: all required R packages (plumber, jsonlite, dplyr, igraph, tidygraph, ggraph, visNetwork, and 80+ dependencies) are included.
-- No internet connection required after installation.
-- Custom application icon on both platforms.
+The landing page provides an overview of the current model state and quick access to pre-built templates.
 
-#### Pre-built Templates
+**Hero animation**: A continuously animated SVG visualization of the DDM architecture showing 7 neurocomputational processing elements (S', S'', M'', M', H, D, US) as colored nodes with pulsing opacity and glow effects. Animated connection lines stroke and destroke to represent learning dynamics. Two diffuse discrepancy signal zones (hippocampal S''+H and dopaminergic M''+D) pulse and shift dimensions as soft gradient clouds, visualizing the model's dual-signal learning mechanism.
 
-- Load classic conditioning phenomena with one click from the Dashboard:
-  - Acquisition
-  - Extinction
-  - Spontaneous Recovery
-  - Latent Inhibition
-  - Blocking
-- Each template pre-configures the full network architecture, trial design, and contingencies.
+**Stat cards**: Four cards display the current model configuration (NPEs, connections, trial types, phases) with unique icons and staggered entrance animations.
+
+**Workflow progress**: A visual strip tracks completion across Architecture, Trials, Contingencies, Simulate, and Results. Steps illuminate in emerald as each is completed.
+
+**Phenomenon gallery**: A grid of 7 pre-built conditioning templates, each loadable with a single click:
+
+| Template | NPEs | Connections | Phases | Description |
+|---|---|---|---|---|
+| **Acquisition** | 7 | 6 | 1 | Simple CS+US pairing |
+| **Extinction** | 7 | 6 | 2 | Training followed by extinction |
+| **Spontaneous Recovery** | 7 | 6 | 4 | Train, extinguish, rest, test |
+| **Latent Inhibition** | 7 | 6 | 2 | Pre-exposure then training |
+| **Blocking** | 13 | 17 | 3 | Kamin blocking (A+ then AX+ then test) |
+| **Successive** | 13 | 17 | 3 | Successive conditioning |
+| **Autoshaped Impulsivity** | 13 | 13 | 1 | Small-sooner vs large-later choice with ITI |
+
+Each template pre-configures the complete network architecture, trial designs, and contingency structure. One click loads everything and the user can immediately run the simulation.
+
+#### 2. Network Builder
+
+A full visual editor for designing the neural network architecture.
+
+**Interactive canvas** (React Flow): Drag-and-drop nodes representing NPEs, connected by weighted edges. Each layer has its own color:
+- **US** (red) — unconditioned stimulus
+- **Primary Sensory** (blue) — sensory input
+- **Associative Sensory** (purple) — sensory associations
+- **Hippocampal** (amber) — memory/context
+- **Associative Motor** (teal) — motor associations
+- **Primary Motor** (green) — motor output
+- **Dopaminergic** (pink) — reinforcement signal
+
+Connection lines reflect weight through thickness (1.5x to 4x scaling). The fixed US→D connection (weight = 1.0) is rendered in red. All other connections are gray with animated arrowheads and weight labels.
+
+**Auto-layout**: An "Organize" button arranges all nodes by layer in a structured 4-column academic layout. A "Lock" button saves the current positions for use in Results playback. An "Export PNG" button downloads the network diagram as an image.
+
+**Editor panel**: Two-tab interface for Units and Connections:
+- Add/remove NPEs with name, type (excitatory/inhibitory), and layer selection. Advanced mode exposes activation, temporal summation (tau), activation decay (kappa), mean (mu), standard deviation (sigma), and logistic sigma.
+- Add/remove connections with source, target, and weight. Advanced mode exposes alpha, beta, alpha prime, and beta prime learning rate parameters. A historical default auto-converts beta values of 0.1 to 0.12.
+- **Import/Export**: Save the entire architecture as JSON or load from a previously saved file.
+
+#### 3. Trial Designer
+
+Define trial types and experimental phases.
+
+**Trial builder**: Create trial types with configurable timesteps (1-10). A stimulus activation table lets you set the activation value (0-1) for each Primary Sensory and US unit at each timestep, with a learning checkbox per timestep. Bulk action buttons (Fill, Clear, Learn On, Learn Off) speed up configuration. A separate ITI (inter-trial interval) mode creates rest-period trials.
+
+**Contingency builder**: Define experimental phases by selecting trial types, setting presentation counts, and choosing presentation order:
+- **Random**: trials shuffled across all types
+- **In bulk**: one trial type completes before the next begins
+- **Alternated**: strict interleaving (A, B, A, B...)
+
+Each phase can optionally reset activations between phases or insert ITI trials with configurable min/max intervals. Phases can be reordered with up/down controls.
+
+#### 4. Simulation
+
+Configure and run simulations with live network playback.
+
+**Configuration**: Set number of networks (1-100), threshold type (Gaussian or Beta). Advanced mode reveals the P-update procedure (4 options: async random, async sequential, sync random, sync sequential, each with detailed tooltip explanations) and discrepancy criterion slider.
+
+**Save/Load**: Download the complete experiment configuration as a versioned JSON file (version 3.0), or restore a previously saved experiment.
+
+**Execution**: A single button runs the simulation. The interface validates requirements (minimum 2 NPEs, 1 connection, 1 trial type, 1 phase) and shows specific warnings for missing elements. During execution, an animated progress bar and percentage display track progress. On completion, a success banner shows network count and elapsed time.
+
+**Network playback**: After simulation, an animated React Flow visualization replays the results:
+- **Playback controls**: Play/Pause, Reset, Skip Forward (+10 timesteps), speed selection (1x, 2x, 5x, 10x), and a progress slider.
+- **Node colors** update in real time based on activation level: blue (< 0.3), yellow (0.3-0.6), red (> 0.6), with glow intensity proportional to activation.
+- **Connection thickness** scales with weight (1.5x to 6x).
+- **Info badges** display current phase name, trial number, and timestep.
+
+#### 5. Results
+
+Comprehensive data analysis with multiple visualization types.
+
+**Four chart types**:
+- **Activations**: Line chart of unit activations over trials with dashed phase-boundary markers
+- **Weights**: Line chart of connection weights over trials
+- **Aggregate**: Bar chart with standard error bars per phase, showing mean or median activation
+- **Learning Signals**: Dopaminergic (dVTA, pink) and hippocampal (dH, amber) signal traces
+
+**Filtering**: Select specific units or connections, choose phases and timesteps (per-phase timestep buttons or sliders for phases with many timesteps), switch between Individual (single network) and General (aggregate across all networks with scatter overlay showing each network as a colored dot) views.
+
+**Statistical measures**: Toggle between mean and median for aggregate and general views.
+
+**Export**: Three export options:
+- "This Network": CSV of the current network's full data
+- "All Networks": CSV combining all networks
+- "Selected": CSV with only the currently selected columns
+
+All charts include interactive tooltips (Phase, Trial, values), legends, and a 10-color palette for multiple series.
+
+#### 6. Parameter Sweep
+
+Systematic sensitivity analysis for exploring how parameter changes affect model output.
+
+Select a target (connection or NPE), choose a parameter to sweep (weight, alpha, beta, etc. for connections; mu, sigma, temporal summation, activation decay, logistic sigma for NPEs), define a min-max range and number of steps (2-50), and set how many networks to run per step (1-20).
+
+The sweep runs the full simulation at each parameter value and plots the results as a line chart with two traces:
+- **Mean activation** (solid cyan line) of the selected output unit
+- **Median activation** (dashed teal line) of the selected output unit
+
+This reveals parameter sensitivity, optimal ranges, and phase-transition thresholds in the model's behavior.
+
+#### 7. Help
+
+In-app documentation and guidance for using the interface.
+
+---
+
+### Quick Start
+
+1. Download the installer for your platform from the table above.
+2. **macOS**: Open the `.dmg` and drag DDM-UI to Applications. On first launch, if Gatekeeper blocks it, right-click the app and select "Open", then confirm.
+3. **Windows**: Run the `.exe` installer and follow the prompts. If SmartScreen warns about an unknown publisher, click "More info" then "Run anyway".
+4. Launch DDM-UI. The R simulation engine starts automatically in the background.
+5. On the Dashboard, click any template (e.g., Extinction) to load a complete experiment, then navigate to Simulation and click Run.
 
 ---
 
@@ -95,45 +200,31 @@ The Diffuse Discrepancy Model (DiffDiscM) Simulator is an open-source tool for b
 
 ### Online Version (Simplified)
 
-Access instantly through your browser:
+Access instantly through your browser without installation:
 
 - [DDM-UI online](https://miguel2862.shinyapps.io/ddm-ui/)
-- No installation required.
 - Responsive design (desktop/tablet/mobile).
 - Good for quick demonstrations and teaching.
 
-Limitations:
+Limitations: cannot fully use local file workflow; session-based usage is more restricted than local execution.
 
-- Cannot fully use local file workflow.
-- Session-based usage is more restricted than local execution.
+### R Version
 
-### R Version (Full Scriptable Features)
-
-For researchers who prefer working directly in R/RStudio:
+For researchers who prefer working directly in R/RStudio. Note that the R version does not include the bilingual interface, the visual network builder, the live simulation playback, the parameter sweep tool, or the dark theme. It provides the core simulation engine with a tab-based Shiny interface.
 
 - Latest version: [DDM_UI (2026).R](https://github.com/miguel2862/DDM-UI/blob/main/R/DDM_UI%20(2026).R)
 - Previous version: [DDM_UI (2025).R](R/DDM_UI%20(2025).R)
 - Legacy version: [DDM_UI.R](R/DDM_UI.R)
 
-Full functionality includes:
-
-- Save/load simulations.
-- Import/export NPUs, connections, trials, and contingencies.
-- Local persistent storage.
-- Reproducible batch runs in R.
-
-### Legacy Windows Installer (R Shiny)
-
-Previous standalone installers for the R Shiny version:
-
-- [English Version (v0.05)](https://drive.google.com/file/d/1_g1aYD9k8oR31n-Mi2L1dPRHYOjSSriN/view?usp=sharing)
-- [Spanish Version (v0.04)](https://drive.google.com/file/d/1gy456KA_bwoXmhocAvuYWLrurgJ-OUnx/view?usp=sharing)
+```r
+shiny::runApp('R/DDM_UI (2026).R')
+```
 
 ---
 
 ## System Requirements
 
-### For Desktop Application (v3.0)
+### Desktop Application (v3.0)
 
 - **macOS**: Apple Silicon (M1/M2/M3/M4), macOS 12 or later
 - **Windows**: Windows 10 or later (64-bit)
@@ -141,12 +232,12 @@ Previous standalone installers for the R Shiny version:
 - 500 MB free disk space
 - No additional software required
 
-### For Online Version
+### Online Version
 
-- Modern web browser
+- Modern web browser (Chrome, Edge, Firefox, Safari)
 - Internet connection
 
-### For R Version
+### R Version
 
 - R 4.0+ and RStudio
 - Required R packages (installed automatically on first run)
@@ -155,76 +246,20 @@ Previous standalone installers for the R Shiny version:
 
 | Feature | v3.0 Desktop | Online | R/RStudio |
 |---|---|---|---|
-| Installation | Download and run | None needed | Requires R |
-| R required externally | **No** (bundled) | No | Yes |
-| Language | EN / ES | EN / ES | EN / ES |
-| Network visual editor | Drag-and-drop | Tab-based | Tab-based |
-| Live simulation view | Real-time | No | No |
-| Parameter sweep | Built-in | No | Manual scripting |
-| Dark theme | Yes | No | No |
-| Templates (one-click) | Yes | Limited | Limited |
-| File storage | Local | Session-limited | Local |
-| CSV export | Yes | Yes | Yes |
-| Offline capable | Yes | No | Yes |
+| Installation | Download and run | None | Requires R |
+| R required | **No** (bundled inside) | No | Yes |
+| Language | **EN / ES** | EN / ES | EN / ES |
+| Dark theme | **Yes** | No | No |
+| Visual network editor | **Drag-and-drop** | Tab-based | Tab-based |
+| Live simulation playback | **Real-time with controls** | No | No |
+| Parameter sweep | **Built-in** | No | Manual scripting |
+| Pre-built templates | **7 phenomena, one-click** | Limited | Limited |
+| Beginner / Advanced mode | **Yes** | Partial | Partial |
+| Animated splash & transitions | **Yes** | No | No |
+| Save/Load experiments | **JSON** | Limited | RDS files |
+| Export results | **CSV** | CSV | Multiple |
+| Offline capable | **Yes** | No | Yes |
 | Performance | Local processing | Network dependent | Local processing |
-
----
-
-## Quick Start
-
-### Desktop Application (v3.0)
-
-1. Download the installer for your platform (see table above).
-2. Install:
-   - **macOS**: Open the `.dmg`, drag DDM-UI to Applications.
-   - **Windows**: Run the `.exe` installer, follow the on-screen prompts.
-3. Launch DDM-UI.
-4. On the Dashboard, select a template (e.g., Extinction) to get started immediately, or navigate to the Network Builder to design your own architecture.
-
-### R Version
-
-1. Open the repository in RStudio.
-2. Run:
-
-```r
-shiny::runApp('R/DDM_UI (2026).R')
-```
-
-3. Follow tabs in sequence: Home, Network Architecture, Create Trials, Configure Contingencies, Simulate, Individual Results, General Results.
-
-### Example Simulation
-
-To load a pre-configured simulation in the R version:
-
-1. Go to **Simulate**.
-2. In **Simulation File Name**, enter: `Extinction_example`
-3. In **Simulation Directory Path**, set the root folder that contains the file.
-4. Click **Load Simulation**.
-
-Example file: [Simulation example/Extinction_example.rds](Simulation%20example/Extinction_example.rds)
-
----
-
-## Technical Architecture (v3.0)
-
-The desktop application uses a dual-process architecture:
-
-```
-Electron Shell
-  ├── React Frontend (TypeScript + Vite + Tailwind CSS v4)
-  │     ├── Zustand (state management)
-  │     ├── React Flow (network visualization)
-  │     ├── Recharts (data visualization)
-  │     ├── Framer Motion (animations)
-  │     └── i18n (English / Spanish)
-  │
-  └── R Plumber API (bundled R Portable)
-        ├── Simulate.DBP() — simulation engine
-        ├── Create.Phases() — phase/trial builder
-        └── All R packages (plumber, jsonlite, dplyr, igraph, etc.)
-```
-
-The frontend communicates with the R backend via HTTP API calls to `localhost`. The R process starts automatically when the application launches and shuts down when the application closes.
 
 ---
 
@@ -308,19 +343,6 @@ The 2026 update to the R Shiny version complements the prior release with usabil
 
 ---
 
-## User Interface Overview (R Shiny Version)
-
-1. **Home**: Introduction, quick-start template, and path shortcuts.
-2. **Network Architecture**: NPU and connection construction + network graph.
-3. **Create Trials**: Trial timing and input schedule definition.
-4. **Configure Contingencies**: Phase and trial presentation programming.
-5. **Simulate**: Batch execution and save/load of sessions.
-6. **Individual Results**: Single-network trajectories.
-7. **General Results**: Aggregated patterns across networks.
-8. **Help**: In-app guidance and examples.
-
----
-
 ## Open Science and Development
 
 DDM-UI is designed to be extended by the scientific community.
@@ -351,15 +373,16 @@ Laboratory website: [CEIC](http://www.ceic.cucba.udg.mx/Investigacion/laboratori
 
 ### Desktop Application (v3.0)
 
-- **macOS**: If the app is blocked by Gatekeeper, right-click the app and select "Open", then confirm.
-- **Windows**: If SmartScreen warns about an unknown publisher, click "More info" then "Run anyway". The installer is not code-signed but is safe to use.
-- If the simulation does not start, wait a few seconds for the R engine to initialize on first launch.
+- **macOS**: If Gatekeeper blocks the app, right-click and select "Open", then confirm. This only needs to be done once.
+- **Windows**: If SmartScreen shows a warning, click "More info" then "Run anyway". The installer is not code-signed but is safe to use.
+- **Slow first launch**: The R engine takes a few seconds to initialize on the first run. Wait for the interface to fully load before interacting.
+- **Simulation not starting**: Verify your model has at least 2 NPEs, 1 connection, 1 trial type, and 1 phase. The Run button will display specific warnings about what is missing.
 
 ### Online version
 
-- Refresh the browser session if UI controls look stale.
-- Try a current version of Chrome/Edge/Firefox.
-- For full data workflow, use the desktop application or R version.
+- Refresh the browser session if UI controls appear stale.
+- Use a current version of Chrome, Edge, or Firefox.
+- For full functionality, use the desktop application.
 
 ### R version
 
