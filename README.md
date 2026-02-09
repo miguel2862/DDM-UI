@@ -24,10 +24,10 @@ The Diffuse Discrepancy Model (DiffDiscM) Simulator is an open-source tool for b
 
 ### Download
 
-| Platform | Installer | SHA-256 |
-|---|---|---|
-| **macOS** (Apple Silicon) | [**DDM-UI.dmg**](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.dmg) | `4322c73a6eb5fdd96184e38d1f2466de72d311e3b72e613baf506ce8d6ad8c42` |
-| **Windows** (64-bit) | [**DDM-UI.exe**](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.exe) | `d81186a00636bfb9940b3b7b3243e0e987b4b023d0f9c8ae70539343e9348d35` |
+| Platform | Installer |
+|---|---|
+| **macOS** (Apple Silicon) | [**DDM-UI.dmg**](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.dmg) |
+| **Windows** (64-bit) | [**DDM-UI.exe**](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.exe) |
 
 > [All releases](https://github.com/miguel2862/DDM-UI/releases/tag/3.0)
 
@@ -39,10 +39,13 @@ Both installers are **fully self-contained**. They bundle **R Portable** with al
 
 #### Completely New Interface
 
-The entire user interface has been rebuilt from scratch using modern web technologies:
+The entire user interface has been rebuilt from scratch. The original single-file R Shiny application (3,908 lines of R) has been replaced by a modern **React 18 + TypeScript** frontend communicating with an **R Plumber API** backend:
 
 - **React 18 + TypeScript** with strict typing across the entire codebase.
 - **Tailwind CSS v4** for a consistent, responsive design system.
+- **Zustand** for centralized state management across all pages.
+- **React Flow** (`@xyflow/react`) for interactive, draggable network visualizations with real-time updates.
+- **Recharts** for publication-quality data visualization (line, bar, scatter, and composed charts).
 - **Framer Motion** for fluid page transitions, staggered list animations, pulsing glows, and interactive hover/tap effects throughout the application.
 - **Dark theme** optimized for extended research sessions: deep navy background (#0f172a) with cyan and teal accent colors, carefully tuned contrast ratios across all elements.
 - **Lucide icon library** for clean, consistent iconography in every control.
@@ -53,7 +56,7 @@ Full internationalization with one-click language switching. Every label, button
 
 #### Animated Splash Screen
 
-On launch, an animated splash screen displays for 4.5 seconds with:
+On launch, an animated splash screen displays with:
 - Gradient-filled network icon with animated stroke
 - Staggered text entrance animations
 - Credits, university, and version information
@@ -64,7 +67,7 @@ On launch, an animated splash screen displays for 4.5 seconds with:
 
 A global toggle in the sidebar switches between:
 - **Beginner mode**: exposes only essential parameters (unit name, type, layer, connection source/target/weight). Ideal for students and demonstrations.
-- **Advanced mode**: reveals all free parameters for fine-grained control over the simulation (activation, temporal summation, activation decay, mean, standard deviation, logistic sigma for NPEs; alpha, beta, alpha prime, beta prime learning rates for connections; P-update procedure and discrepancy criterion for simulation).
+- **Advanced mode**: reveals all free parameters for fine-grained control over the simulation. For NPEs: activation, temporal summation ($\tau$), activation decay ($\kappa$), threshold mean ($\mu$), threshold standard deviation ($\sigma$), and logistic sigma. For connections: $\alpha$ (weight gain rate), $\beta$ (weight loss rate), $\alpha'$ and $\beta'$ (inhibitory rates). For simulation: P-update procedure and discrepancy criterion.
 
 ---
 
@@ -76,7 +79,7 @@ DDM-UI v3.0 has **7 integrated pages**, each handling a stage of the modeling wo
 
 The landing page provides an overview of the current model state and quick access to pre-built templates.
 
-**Hero animation**: A continuously animated SVG visualization of the DDM architecture showing 7 neurocomputational processing elements (S', S'', M'', M', H, D, US) as colored nodes with pulsing opacity and glow effects. Animated connection lines stroke and destroke to represent learning dynamics. Two diffuse discrepancy signal zones (hippocampal S''+H and dopaminergic M''+D) pulse and shift dimensions as soft gradient clouds, visualizing the model's dual-signal learning mechanism.
+**Hero animation**: A continuously animated SVG visualization of the DDM architecture showing 7 neurocomputational processing elements ($S'$, $S''$, $M''$, $M'$, $H$, $D$, $US$) as colored nodes with pulsing opacity and glow effects. Animated connection lines stroke and destroke to represent learning dynamics. Two diffuse discrepancy signal zones (hippocampal $S'' + H$ and dopaminergic $M'' + D$) pulse and shift dimensions as soft gradient clouds, visualizing the model's dual-signal learning mechanism.
 
 **Stat cards**: Four cards display the current model configuration (NPEs, connections, trial types, phases) with unique icons and staggered entrance animations.
 
@@ -90,7 +93,7 @@ The landing page provides an overview of the current model state and quick acces
 | **Extinction** | 7 | 6 | 2 | Training followed by extinction |
 | **Spontaneous Recovery** | 7 | 6 | 4 | Train, extinguish, rest, test |
 | **Latent Inhibition** | 7 | 6 | 2 | Pre-exposure then training |
-| **Blocking** | 13 | 17 | 3 | Kamin blocking (A+ then AX+ then test) |
+| **Blocking** | 13 | 17 | 3 | Kamin blocking ($A+$ then $AX+$ then test) |
 | **Successive** | 13 | 17 | 3 | Successive conditioning |
 | **Autoshaped Impulsivity** | 13 | 13 | 1 | Small-sooner vs large-later choice with ITI |
 
@@ -100,85 +103,88 @@ Each template pre-configures the complete network architecture, trial designs, a
 
 A full visual editor for designing the neural network architecture.
 
-**Interactive canvas** (React Flow): Drag-and-drop nodes representing NPEs, connected by weighted edges. Each layer has its own color:
-- **US** (red) — unconditioned stimulus
-- **Primary Sensory** (blue) — sensory input
-- **Associative Sensory** (purple) — sensory associations
-- **Hippocampal** (amber) — memory/context
-- **Associative Motor** (teal) — motor associations
-- **Primary Motor** (green) — motor output
-- **Dopaminergic** (pink) — reinforcement signal
+**Interactive canvas** (React Flow): Drag-and-drop nodes representing NPEs, connected by weighted edges. Each of the 7 layers has its own color and shape:
+- **US** (red, hexagon) — unconditioned stimulus
+- **Primary Sensory** (blue, rounded square) — sensory input ($S'$)
+- **Associative Sensory** (purple, circle) — sensory associations ($S''$)
+- **Hippocampal** (amber, circle) — context/novelty detection ($H$)
+- **Associative Motor** (teal, circle) — motor associations ($M''$)
+- **Primary Motor** (green, rounded square) — motor output ($M'$)
+- **Dopaminergic** (pink, circle) — reinforcement signal ($D$)
 
-Connection lines reflect weight through thickness (1.5x to 4x scaling). The fixed US→D connection (weight = 1.0) is rendered in red. All other connections are gray with animated arrowheads and weight labels.
+Connection lines reflect weight through thickness (1.5x to 4x scaling). The fixed $US \to D$ connection (weight = 1.0) is rendered in red. All other connections are gray with animated arrowheads and weight labels displayed to two decimal places.
 
-**Auto-layout**: An "Organize" button arranges all nodes by layer in a structured 4-column academic layout. A "Lock" button saves the current positions for use in Results playback. An "Export PNG" button downloads the network diagram as an image.
+**Auto-layout**: An "Organize" button arranges all nodes by layer in a structured 4-column academic layout with automatic spacing. A "Lock" button saves the current node positions so they persist into the Results playback visualization. An "Export PNG" button downloads the network diagram as an image file.
 
 **Editor panel**: Two-tab interface for Units and Connections:
-- Add/remove NPEs with name, type (excitatory/inhibitory), and layer selection. Advanced mode exposes activation, temporal summation (tau), activation decay (kappa), mean (mu), standard deviation (sigma), and logistic sigma.
-- Add/remove connections with source, target, and weight. Advanced mode exposes alpha, beta, alpha prime, and beta prime learning rate parameters. A historical default auto-converts beta values of 0.1 to 0.12.
-- **Import/Export**: Save the entire architecture as JSON or load from a previously saved file.
+- Add/remove NPEs with name, type (excitatory/inhibitory), and layer selection. In advanced mode: activation, $\tau$ (temporal summation), $\kappa$ (activation decay), $\mu$ (threshold mean), $\sigma$ (threshold standard deviation), and logistic $\sigma$.
+- Add/remove connections with source, target, and weight. In advanced mode: $\alpha$, $\beta$, $\alpha'$, $\beta'$ learning rate parameters. The historical default of $\beta = 0.12$ is auto-applied.
+- **Import/Export**: Save the entire architecture as JSON or load from a previously saved file. The JSON includes NPEs, connections, trials, contingencies, and ITI configuration.
 
 #### 3. Trial Designer
 
-Define trial types and experimental phases.
+Define trial types and experimental phases with full control over stimulus timing.
 
-**Trial builder**: Create trial types with configurable timesteps (1-10). A stimulus activation table lets you set the activation value (0-1) for each Primary Sensory and US unit at each timestep, with a learning checkbox per timestep. Bulk action buttons (Fill, Clear, Learn On, Learn Off) speed up configuration. A separate ITI (inter-trial interval) mode creates rest-period trials.
+**Trial builder**: Create trial types with configurable timesteps (1-10). A stimulus activation table provides a grid where each row is a timestep and each column is a Primary Sensory or US unit. Set activation values (0-1) for each cell, with a learning checkbox per timestep controlling whether weight updates occur. Bulk action buttons (Fill, Clear, Learn On, Learn Off) speed up configuration. A separate ITI (inter-trial interval) mode creates single-timestep rest-period trials with all stimuli at 0.
 
-**Contingency builder**: Define experimental phases by selecting trial types, setting presentation counts, and choosing presentation order:
+**Contingency builder**: Define experimental phases by selecting trial types, setting presentation counts (supports different counts per trial type using dash-separated values, e.g., "100-50"), and choosing presentation order:
 - **Random**: trials shuffled across all types
 - **In bulk**: one trial type completes before the next begins
 - **Alternated**: strict interleaving (A, B, A, B...)
 
-Each phase can optionally reset activations between phases or insert ITI trials with configurable min/max intervals. Phases can be reordered with up/down controls.
+Each phase can optionally reset activations between phases or insert ITI trials with configurable min/max intervals and a selectable ITI trial type. Phases can be reordered with up/down controls.
 
 #### 4. Simulation
 
-Configure and run simulations with live network playback.
+Configure, run, and visually replay simulations.
 
-**Configuration**: Set number of networks (1-100), threshold type (Gaussian or Beta). Advanced mode reveals the P-update procedure (4 options: async random, async sequential, sync random, sync sequential, each with detailed tooltip explanations) and discrepancy criterion slider.
+**Configuration**: Set number of networks (1-100), threshold type (Gaussian or Beta). In advanced mode: P-update procedure with 4 options (asynchronous random, asynchronous sequential, synchronous random, synchronous sequential — each with detailed tooltip explanations of how activations and weights are updated) and discrepancy criterion slider (0.0001 to 0.1, default 0.001).
 
-**Save/Load**: Download the complete experiment configuration as a versioned JSON file (version 3.0), or restore a previously saved experiment.
+**Save/Load**: Download the complete experiment configuration as a versioned JSON file (version 3.0 format) including all NPEs, connections, trials, contingencies, and simulation parameters. Restore a previously saved experiment with a single click.
 
-**Execution**: A single button runs the simulation. The interface validates requirements (minimum 2 NPEs, 1 connection, 1 trial type, 1 phase) and shows specific warnings for missing elements. During execution, an animated progress bar and percentage display track progress. On completion, a success banner shows network count and elapsed time.
+**Execution**: The Run button validates requirements (minimum 2 NPEs, 1 connection, 1 trial type, 1 phase) and displays specific warnings for missing elements. During execution, an animated progress bar with percentage tracks progress. On completion, a success banner displays network count and elapsed time with options to run again or view results.
 
-**Network playback**: After simulation, an animated React Flow visualization replays the results:
-- **Playback controls**: Play/Pause, Reset, Skip Forward (+10 timesteps), speed selection (1x, 2x, 5x, 10x), and a progress slider.
-- **Node colors** update in real time based on activation level: blue (< 0.3), yellow (0.3-0.6), red (> 0.6), with glow intensity proportional to activation.
-- **Connection thickness** scales with weight (1.5x to 6x).
-- **Info badges** display current phase name, trial number, and timestep.
+**Network playback — trial-by-trial observation**: After simulation, an animated React Flow visualization replays the entire simulation timeline. This is one of the most powerful features in v3.0: you can observe the network evolve across every single timestep, watching activations rise and fall and connections strengthen or weaken in real time.
+
+- **Playback controls**: Play/Pause, Reset (back to timestep 0), Skip Forward (+10 timesteps), speed selection (1x, 2x, 5x, 10x), and a draggable progress slider to jump to any point in the simulation.
+- **Node colors** update in real time based on activation level: blue ($a < 0.3$), yellow ($0.3 \leq a \leq 0.6$), red ($a > 0.6$), with glow intensity proportional to activation. Each node displays its name and current activation value to 4 decimal places.
+- **Connection thickness** scales dynamically with weight (1.5x to 6x). Fixed connections ($w = 1.0$) remain red.
+- **Info badges** display the current phase name, trial number ($T$), and timestep ($t$) at all times.
+
+This allows researchers to step through acquisition, extinction, or any phenomenon moment by moment, observing exactly how the discrepancy signals drive learning across the network.
 
 #### 5. Results
 
-Comprehensive data analysis with multiple visualization types.
+Comprehensive data analysis with multiple visualization types and export options.
 
 **Four chart types**:
-- **Activations**: Line chart of unit activations over trials with dashed phase-boundary markers
-- **Weights**: Line chart of connection weights over trials
-- **Aggregate**: Bar chart with standard error bars per phase, showing mean or median activation
-- **Learning Signals**: Dopaminergic (dVTA, pink) and hippocampal (dH, amber) signal traces
+- **Activations**: Line chart of unit activations across trials. Dashed vertical reference lines mark phase boundaries with phase labels. Select any combination of units to compare their trajectories.
+- **Weights**: Line chart of connection weights across trials. Track how $w_{i,j}$ evolves through training, extinction, rest, and test phases.
+- **Aggregate**: Bar chart with standard error bars showing mean or median activation per unit within a selected phase. In General view, each network appears as a colored scatter dot overlaid on the bars.
+- **Learning Signals**: Dopaminergic ($\bar{d}_D$, pink) and hippocampal ($\bar{d}_H$, amber) discrepancy signal traces across the entire simulation. Observe how the two signal types diverge during acquisition vs extinction.
 
-**Filtering**: Select specific units or connections, choose phases and timesteps (per-phase timestep buttons or sliders for phases with many timesteps), switch between Individual (single network) and General (aggregate across all networks with scatter overlay showing each network as a colored dot) views.
+**Individual vs General view**: The Individual tab analyzes a single network (selectable by dropdown). The General tab aggregates across all simulated networks with a composed bar + scatter chart where each network is shown as a distinct colored dot, revealing between-network variability.
 
-**Statistical measures**: Toggle between mean and median for aggregate and general views.
+**Filtering**: Select specific units or connections, choose phases and per-phase timesteps (buttons for phases with few timesteps, sliders for phases with many), and toggle between mean and median measures.
 
-**Export**: Three export options:
-- "This Network": CSV of the current network's full data
-- "All Networks": CSV combining all networks
-- "Selected": CSV with only the currently selected columns
+**Export**: Three CSV export options:
+- "This Network": full data for the current network
+- "All Networks": combined data across all networks
+- "Selected": only the currently visible columns (selected units/connections/signals)
 
-All charts include interactive tooltips (Phase, Trial, values), legends, and a 10-color palette for multiple series.
+All charts include interactive tooltips showing Phase, Trial, and data values, with a 10-color palette for multiple series.
 
 #### 6. Parameter Sweep
 
-Systematic sensitivity analysis for exploring how parameter changes affect model output.
+Systematic sensitivity analysis for exploring how single parameter changes affect model output.
 
-Select a target (connection or NPE), choose a parameter to sweep (weight, alpha, beta, etc. for connections; mu, sigma, temporal summation, activation decay, logistic sigma for NPEs), define a min-max range and number of steps (2-50), and set how many networks to run per step (1-20).
+Select a target element (any connection or NPE), choose a parameter to sweep (weight, $\alpha$, $\beta$, etc. for connections; $\mu$, $\sigma$, $\tau$, $\kappa$, logistic $\sigma$ for NPEs), define a min-max range and number of steps (2-50), and set how many networks to run per step (1-20).
 
 The sweep runs the full simulation at each parameter value and plots the results as a line chart with two traces:
 - **Mean activation** (solid cyan line) of the selected output unit
 - **Median activation** (dashed teal line) of the selected output unit
 
-This reveals parameter sensitivity, optimal ranges, and phase-transition thresholds in the model's behavior.
+This reveals parameter sensitivity, optimal operating ranges, and phase-transition thresholds in the model's behavior — for example, finding the minimum connection weight at which blocking emerges, or how temporal summation ($\tau$) affects acquisition speed.
 
 #### 7. Help
 
@@ -193,6 +199,7 @@ In-app documentation and guidance for using the interface.
 3. **Windows**: Run the `.exe` installer and follow the prompts. If SmartScreen warns about an unknown publisher, click "More info" then "Run anyway".
 4. Launch DDM-UI. The R simulation engine starts automatically in the background.
 5. On the Dashboard, click any template (e.g., Extinction) to load a complete experiment, then navigate to Simulation and click Run.
+6. After simulation, use the playback controls to step through the network trial by trial, or go to Results for charts and data export.
 
 ---
 
@@ -210,7 +217,7 @@ Limitations: cannot fully use local file workflow; session-based usage is more r
 
 ### R Version
 
-For researchers who prefer working directly in R/RStudio. Note that the R version does not include the bilingual interface, the visual network builder, the live simulation playback, the parameter sweep tool, or the dark theme. It provides the core simulation engine with a tab-based Shiny interface.
+For researchers who prefer working directly in R/RStudio. The R version provides the core simulation engine with a tab-based Shiny interface but does not include the bilingual (EN/ES) interface, the drag-and-drop visual network builder, the real-time simulation playback, the parameter sweep tool, the dark theme, or the animated transitions. It requires R and all dependencies to be installed manually.
 
 - Latest version: [DDM_UI (2026).R](https://github.com/miguel2862/DDM-UI/blob/main/R/DDM_UI%20(2026).R)
 - Previous version: [DDM_UI (2025).R](R/DDM_UI%20(2025).R)
@@ -251,15 +258,14 @@ shiny::runApp('R/DDM_UI (2026).R')
 | Language | **EN / ES** | EN / ES | EN / ES |
 | Dark theme | **Yes** | No | No |
 | Visual network editor | **Drag-and-drop** | Tab-based | Tab-based |
-| Live simulation playback | **Real-time with controls** | No | No |
+| Trial-by-trial playback | **Real-time with controls** | No | No |
 | Parameter sweep | **Built-in** | No | Manual scripting |
 | Pre-built templates | **7 phenomena, one-click** | Limited | Limited |
 | Beginner / Advanced mode | **Yes** | Partial | Partial |
-| Animated splash & transitions | **Yes** | No | No |
+| Animated transitions | **Yes** | No | No |
 | Save/Load experiments | **JSON** | Limited | RDS files |
 | Export results | **CSV** | CSV | Multiple |
 | Offline capable | **Yes** | No | Yes |
-| Performance | Local processing | Network dependent | Local processing |
 
 ---
 
@@ -273,57 +279,123 @@ The model follows the Donahoe-Burgos-Palmer architecture and learning logic, wit
 
 ## Mathematical Formulation
 
-### 1. Logistic transform used in activation updates
+The equations below correspond to Appendices A and B of the published model. They define how units activate and how connections learn.
+
+### Activation Function (Appendix A)
+
+The activation of unit $j$ at moment $t$ is determined by a case-branch equation with two modes: unconditional and conditional.
 
 $$
-L(x,\sigma)=\frac{1}{1+\exp\left(\frac{-x+0.5}{\sigma}\right)}
+a_{j,t} =
+\begin{cases}
+a_{S^*,t}
+& \text{if } a_{S^*,t} > 0 \text{ and } j \in D \cup M' \quad \text{(Unconditional)} \\[8pt]
+
+L(\mathit{exc}_{j,t}) + \tau_j \, L(\mathit{exc}_{j,t-1})[1 - L(\mathit{exc}_{j,t})] - L(\mathit{inh}_{j,t})
+& \text{if } L(\mathit{exc}) > L(\mathit{inh}) \text{ and } L(\mathit{exc}) \geq \theta_{j,t} \quad \text{(Reactivation)} \\[8pt]
+
+L(\mathit{exc}_{j,t-1}) - \kappa_j \, L(\mathit{exc}_{j,t-1})
+& \text{if } L(\mathit{exc}) > L(\mathit{inh}) \text{ and } L(\mathit{exc}) < \theta_{j,t} \quad \text{(Decay)} \\[8pt]
+
+0
+& \text{if } L(\mathit{exc}) \leq L(\mathit{inh}) \quad \text{(Deactivation)}
+\end{cases}
 $$
 
-### 2. Reactivation branch (schematic form)
+Where:
+
+- $a_{S^*,t}$ is the activation from a biologically significant stimulus ($S^*$), which directly activates $D$ and $M'$ units
+- $\tau_j$ is the temporal summation parameter (default 0.1 for all units)
+- $\kappa_j$ is the temporal decay parameter (default 0.1 for all units)
+- $\theta_{j,t}$ is a dynamic threshold drawn at each moment from $\mathcal{N}(0.2, 0.15)$
+
+### Excitatory and Inhibitory Input
+
+Each unit receives afferent excitation from $m$ units and inhibition from $n$ units:
 
 $$
-a_{i,t}=p_{\mathrm{epsp},i,t}+\tau_i\,L(E_{i,t-1},\sigma_i)\,(1-p_{\mathrm{epsp},i,t})-p_{\mathrm{ipsp},i,t}
+\mathit{exc}_{j,t} = \sum_{i=1}^{m} a^+_{i,t} \, w^+_{i,j,t} \qquad \mathit{inh}_{j,t} = \sum_{k=1}^{n} a^-_{k,t} \, w^-_{k,j,t}
 $$
 
-where $\tau_i$ is temporal summation.
+### Logistic Transform
 
-### 3. Dopaminergic discrepancy
-
-$$
-d_{D,t}=\frac{1}{N_D}\sum_{k\in D}(a_{k,t}-a_{k,t-1})
-$$
-
-### 4. Hippocampal discrepancy
+All excitatory and inhibitory inputs are passed through a logistic (sigmoid) function before use:
 
 $$
-d_{H,t}=\frac{1}{N_H}\sum_{k\in H}|a_{k,t}-a_{k,t-1}|+d_{D,t}(1-d_{H,t-1})
+L(x) = \frac{1}{1 + e^{-(x - \mu)/\sigma}}, \quad \mu = 0.5, \; \sigma = 0.1
 $$
 
-### 5. Weight update rules
+Note that $L(0) = 0.0006$, meaning there is always a negligible amount of inhibition even in networks with only excitatory units.
 
-For excitatory connections (when discrepancy is below criterion):
+### Learning Function (Appendix B)
 
-$$
-w_{ij,t+1}=w_{ij,t}-\beta\,w_{ij,t}\,a_{j,t}\,a_{i,t}
-$$
-
-For inhibitory connections:
+Connection weights change according to a conditional rule based on the discrepancy magnitude:
 
 $$
-w_{ij,t+1}=w_{ij,t}-\beta'\,w_{ij,t}\,a_{j,t}\,a_{i,t}
+\Delta w_{i,j,t} =
+\begin{cases}
+\alpha_j \, a_{j,t} \, p_{i,t} \, r_{j,t} \, d_t & \text{if } d_t \geq 0.001 \quad \text{(Weight gain)} \\[6pt]
+-\beta_j \, a_{i,t} \, a_{j,t} & \text{otherwise} \quad \text{(Weight loss)}
+\end{cases}
 $$
 
-Default values: $\beta=0.1, \quad \beta'=0.1$
+$$
+w_{i,j,t} = w_{i,j,t-1} + \Delta w_{i,j,t}
+$$
+
+Where:
+
+- $\alpha_j = 0.5$ (rate of weight gain, for all connections)
+- $\beta_j = 0.1$ (rate of weight loss, for all connections)
+- $p_{i,t} = \dfrac{a_{i,t} \, w_{i,j,t-1}}{\mathit{exc}_{j,t}}$ (effective synaptic influence from unit $i$)
+- $r_{j,t} = 1 - \sum_{i=1}^{n} w_{i,j,t}$ (remaining weight capacity on unit $j$)
+- $d_t$ = discrepancy magnitude (defined below)
+
+The term $a_{j,t} \, p_{i,t}$ implements a Hebbian dynamic: co-activation of pre- and post-synaptic units promotes strengthening. The factors $p_{i,t}$ and $r_{j,t}$ implement competitive learning: connections with higher activations and weights gain more, subject to a total weight limit of 1.0 per unit.
+
+All variable weights lie within the open interval $(0.0, 1.0)$, excluding fixed weights ($S^* \to D$ and $S^* \to M'$), which are set to 1.0.
+
+### Discrepancy Signals
+
+The discrepancy $d_t$ depends on the type of post-synaptic unit. It is computed as a temporal difference in activations — not a supervised error signal:
+
+$$
+d_t =
+\begin{cases}
+\bar{d}_{H,t} = \dfrac{1}{n_H} \displaystyle\sum_{k=1}^{n_H} \left| a_{H_k,t} - a_{H_k,t-1} \right| + \bar{d}_{D,t} \left(1 - \bar{d}_{H,t-1}\right) & \text{if } j \in S'' \cup H \\[14pt]
+\bar{d}_{D,t} = \dfrac{1}{n_D} \displaystyle\sum_{m=1}^{n_D} \left( a_{D_m,t} - a_{D_m,t-1} \right) & \text{if } j \in M'' \cup D \cup M'
+\end{cases}
+$$
+
+Key distinctions:
+
+- **Hippocampal discrepancy** ($\bar{d}_H$) uses **absolute** differences: $H$ units detect changes in activation regardless of direction. The term $(1 - \bar{d}_{H,t-1})$ acts as a dynamic saturation mechanism, preventing the signal from exceeding its bound.
+- **Dopaminergic discrepancy** ($\bar{d}_D$) uses **signed** differences: $D$ units detect directional mismatches, making motor-pathway connections ($S'' \to M''$, $M'' \to D$, $M'' \to M'$) more susceptible to weight loss under extinction.
+
+These discrepancies are "diffuse" in that the same $d_t$ modulates weight changes across all applicable connections simultaneously.
+
+### The Update Procedure (Appendix C)
+
+All published DTD simulations use an **asynchronous-random** update procedure:
+
+1. At each moment $t$, the list of all updateable units is **shuffled** uniformly at random
+2. Activations are updated in that random order, with each new value **replacing the previous one immediately** (asynchronous)
+3. After all activations are updated, **discrepancies** are computed
+4. Finally, **weights** are updated
+
+This temporal asynchrony is a defining feature of the DTD model. It introduces stochasticity (e.g., if $S''_1$ is updated after $H$, then $H$ sees the previous value of $S''_1$) and is the only update scheme that generates core DTD phenomena such as the interstimulus-interval (ISI) function and its sensitivity to network depth.
+
+---
 
 ## Core Functions (Implementation Map)
 
-- `Simulate.DBP()`: main simulation engine; iterates through timesteps, updates activations, computes discrepancy signals, and updates connection weights.
-- `Create.Phases()`: builds the full timestep schedule from contingencies/trials, including optional ITI structure.
-- `L(x, sigma)`: logistic transform used in activation and input-related update terms.
-- `ComputeInputs()`: computes excitatory and inhibitory input totals from presynaptic activity and current weights.
-- `dVTA()`: computes dopaminergic discrepancy from timestep-to-timestep activation change in dopaminergic units.
-- `dCA1()`: computes hippocampal discrepancy and combines it with dopaminergic discrepancy as specified by the model logic.
-- `Compute.r()`: computes residual capacity terms used in discrepancy-driven weight increment.
+- `Simulate.DBP()`: main simulation engine; iterates through timesteps, updates activations in shuffled order, computes discrepancy signals, and applies the learning rule.
+- `Create.Phases()`: builds the full timestep schedule from contingencies/trials, including optional ITI structure and presentation order (random, bulk, alternated).
+- `L(x)`: logistic transform applied to excitatory and inhibitory inputs.
+- `ComputeInputs()`: computes $\mathit{exc}_{j,t}$ and $\mathit{inh}_{j,t}$ from presynaptic activations and current weights.
+- `dVTA()`: computes dopaminergic discrepancy $\bar{d}_{D,t}$ from signed activation changes in $D$ units.
+- `dCA1()`: computes hippocampal discrepancy $\bar{d}_{H,t}$ from absolute activation changes in $H$ units, combined with the dopaminergic signal.
+- `Compute.r()`: computes remaining weight capacity $r_{j,t} = 1 - \sum w_{i,j,t}$.
 - `estBetaParams()`: optional helper for Beta-distributed threshold sampling from mean/deviation parameters.
 
 ---
