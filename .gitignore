@@ -1,49 +1,60 @@
-# History files
+# Dependencies
+node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/dist-ssr/
+
+# Electron build artifacts
+electron/release/
+electron/R-portable/
+electron/R-portable-win/
+electron/.wine-ddm-ui/
+
+# Large binaries
+electron/scripts/*.exe
+
+# R
 .Rhistory
 .Rapp.history
-
-# Session Data files
 .RData
 .RDataTmp
-
-# User-specific files
 .Ruserdata
-
-# Example code in package build process
-*-Ex.R
-
-# Output files from R CMD build
-/*.tar.gz
-
-# Output files from R CMD check
-/*.Rcheck/
-
-# RStudio files
-.Rproj.user/
-
-# produced vignettes
-vignettes/*.html
-vignettes/*.pdf
-
-# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
-.httr-oauth
-
-# knitr and R markdown default cache directories
-*_cache/
-/cache/
-
-# Temporary files created by R markdown
-*.utf8.md
-*.knit.md
-
-# R Environment Variables
 .Renviron
-
-# pkgdown site
-docs/
-
-# translation temp files
-po/*~
-
-# RStudio Connect folder
+*-Ex.R
+/*.tar.gz
+/*.Rcheck/
 rsconnect/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Local env
+*.local
+
+# PDFs (large reference papers)
+*.pdf
+
+# Icon build artifacts
+icon.icns
+icon.iconset/
+
+# Claude project files
+.claude/

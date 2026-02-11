@@ -224,4 +224,3 @@ University of Guadalajara — [CEIC Lab](http://www.ceic.cucba.udg.mx/Investigac
 <p align="center">
 Advancing behavioral science through open collaboration and simulation
 </p>
-

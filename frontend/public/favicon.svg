@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="url(#grad)" stroke="#0891b2" stroke-width="1"/>
+
+  <!-- Neural network nodes -->
+  <!-- Input layer -->
+  <rect x="5" y="8" width="5" height="5" rx="1" fill="#3b82f6" opacity="0.9"/>
+  <rect x="5" y="19" width="5" height="5" rx="1" fill="#ef4444" opacity="0.9"/>
+
+  <!-- Hidden layer -->
+  <circle cx="16" cy="10" r="3" fill="#8b5cf6" opacity="0.9"/>
+  <circle cx="16" cy="22" r="3" fill="#f59e0b" opacity="0.9"/>
+
+  <!-- Output layer -->
+  <rect x="22" y="13" width="5" height="5" rx="1" fill="#10b981" opacity="0.9"/>
+
+  <!-- Connections -->
+  <line x1="10" y1="10.5" x2="13" y2="10" stroke="#94a3b8" stroke-width="0.8" opacity="0.6"/>
+  <line x1="10" y1="21.5" x2="13" y2="22" stroke="#94a3b8" stroke-width="0.8" opacity="0.6"/>
+  <line x1="10" y1="10.5" x2="13" y2="22" stroke="#94a3b8" stroke-width="0.5" opacity="0.4"/>
+  <line x1="10" y1="21.5" x2="13" y2="10" stroke="#94a3b8" stroke-width="0.5" opacity="0.4"/>
+  <line x1="19" y1="10" x2="22" y2="15.5" stroke="#94a3b8" stroke-width="0.8" opacity="0.6"/>
+  <line x1="19" y1="22" x2="22" y2="15.5" stroke="#94a3b8" stroke-width="0.8" opacity="0.6"/>
+
+  <!-- Gradient -->
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="32" y2="32">
+      <stop offset="0%" stop-color="#ecfeff"/>
+      <stop offset="100%" stop-color="#f0fdfa"/>
+    </linearGradient>
+  </defs>
+</svg>
