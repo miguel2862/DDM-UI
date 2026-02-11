@@ -15,7 +15,7 @@
 
 ## About
 
-DDM-UI is an open-source simulator for the **Diffuse Discrepancy Model** (Donahoe, Burgos, & Palmer, 1993) — a connectionist model of Pavlovian and operant conditioning grounded in behavioral neuroscience. It lets researchers build neural network architectures, define experimental contingencies, run simulations, and visualize how associative learning unfolds trial by trial.
+DDM-UI is an open-source simulator for the **Diffuse Temporal Discrepancy** model (DTD; Donahoe, Burgos, & Palmer, 1993) — a connectionist model of Pavlovian and operant conditioning grounded in behavioral neuroscience. It lets researchers build neural network architectures, define experimental contingencies, run simulations, and visualize how associative learning unfolds trial by trial.
 
 Whether you study extinction, blocking, latent inhibition, or autoshaped choice, this tool lets you set up the experiment, run the simulation, and see what the model predicts — without writing a single line of code.
 
@@ -23,7 +23,7 @@ Whether you study extinction, blocking, latent inhibition, or autoshaped choice,
 
 ## The Model
 
-The Diffuse Discrepancy Model belongs to a family of biologically inspired neural network models designed to account for behavioral phenomena in conditioning. Unlike purely mathematical models (Rescorla-Wagner, temporal-difference learning), the DDM operates at the level of neural processing elements (NPEs) organized in layers that mirror functional brain systems.
+The Diffuse Temporal Discrepancy (DTD) model belongs to a family of biologically inspired neural network models designed to account for behavioral phenomena in conditioning. Unlike purely mathematical models (Rescorla-Wagner, temporal-difference learning), the DTD operates at the level of neural processing elements (NPEs) organized in layers that mirror functional brain systems.
 
 ### Architecture
 
@@ -59,11 +59,15 @@ The basic network has **7 NPEs across 6 layers**:
 
 ### How learning works
 
-Learning in the DDM depends on two **discrepancy signals** — diffuse modulatory signals that determine whether synaptic weights increase or decrease:
+Learning in the DTD depends on two **discrepancy signals** — diffuse modulatory signals that determine whether synaptic weights increase or decrease:
 
 1. **Dopaminergic discrepancy** ($\bar{d}_D$): The mean signed change in activation of D-layer units. When the US arrives and D units increase their activation, $\bar{d}_D$ is positive — this signals reinforcement. It modulates connections into M'' and M' layers.
 
-2. **Hippocampal discrepancy** ($\bar{d}_H$): The mean absolute change in activation of H-layer units, combined with the dopaminergic signal: $$\bar{d}_H = |\Delta a_H| + \bar{d}_D \cdot (1 - \bar{d}_{H,\,t-1})$$. It modulates connections into S'' and H layers.
+2. **Hippocampal discrepancy** ($\bar{d}_H$): The mean absolute change in activation of H-layer units, combined with the dopaminergic signal. It modulates connections into S'' and H layers.
+
+$$
+\bar{d}\_{H} = \lvert \Delta a\_{H} \rvert + \bar{d}\_{D} \cdot \left(1 - \bar{d}\_{H,\, t-1}\right)
+$$
 
 On each timestep, the learning rule checks whether the relevant discrepancy signal exceeds a criterion (default: 0.001):
 
