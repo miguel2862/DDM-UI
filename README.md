@@ -61,18 +61,25 @@ The basic network has **7 NPEs across 6 layers**:
 
 Learning in the DTD depends on two **discrepancy signals** — diffuse modulatory signals that determine whether synaptic weights increase or decrease:
 
-1. **Dopaminergic discrepancy** ($\bar{d}_D$): The mean signed change in activation of D-layer units. When the US arrives and D units increase their activation, $\bar{d}_D$ is positive — this signals reinforcement. It modulates connections into M'' and M' layers.
-
-2. **Hippocampal discrepancy** ($\bar{d}_H$): The mean absolute change in activation of H-layer units, combined with the dopaminergic signal. It modulates connections into S'' and H layers.
+1. **Dopaminergic discrepancy** — the mean **signed** change in activation across D-layer units. When the US arrives and D units increase their activation, $\bar{d}_D$ is positive — this signals reinforcement. It modulates connections into $M''$, $D$, and $M'$ layers.
 
 $$
-\bar{d}\_{H} = \lvert \Delta a\_{H} \rvert + \bar{d}\_{D} \cdot \left(1 - \bar{d}\_{H,\, t-1}\right)
+\bar{d}\_{D,t} = \frac{1}{n\_D}\sum\_{m=1}^{n\_D}\left(a\_{D\_m,t} - a\_{D\_m,t-1}\right)
 $$
 
-On each timestep, the learning rule checks whether the relevant discrepancy signal exceeds a criterion (default: 0.001):
+2. **Hippocampal discrepancy** — the mean **absolute** change in activation across H-layer units, combined with the dopaminergic signal. It modulates connections into $S''$ and $H$ layers. The factor $(1 - \bar{d}\_{H,t-1})$ acts as a saturation mechanism that prevents the signal from exceeding its upper bound.
 
-- **If $d \geq$ criterion** (reinforcement): Weights increase proportionally to the presynaptic activation, the postsynaptic activation, the remaining weight capacity ($r = 1 - \sum w$), and a learning-rate parameter $\alpha$.
-- **If $d <$ criterion** (decrement): Weights decrease proportionally to both pre- and postsynaptic activations and a decrement-rate parameter $\beta$ (default: 0.1).
+$$
+\bar{d}\_{H,t} = \frac{1}{n\_H}\sum\_{k=1}^{n\_H}\left|a\_{H\_k,t} - a\_{H\_k,t-1}\right| + \bar{d}\_{D,t}\left(1 - \bar{d}\_{H,t-1}\right)
+$$
+
+On each timestep, the learning rule checks whether the relevant discrepancy $d_t$ exceeds a criterion (default: 0.001):
+
+$$
+\Delta w\_{i,j,t} = \begin{cases} \alpha \cdot a\_{j,t} \cdot p\_{i,t} \cdot r\_{j,t} \cdot d\_t & \text{if } d\_t \geq 0.001 \quad \text{(weight gain)} \\\ -\beta \cdot a\_{i,t} \cdot a\_{j,t} & \text{otherwise} \quad \text{(weight loss)} \end{cases}
+$$
+
+Where $p\_{i,t}$ is the proportional contribution of unit $i$ to the total excitatory input at $j$, and $r\_{j,t} = 1 - \sum w\_{i,j,t}$ is the remaining weight capacity.
 
 This dual mechanism produces the characteristic learning curves seen in conditioning: rapid acquisition when the US is unexpected, slow extinction when it is omitted, spontaneous recovery after a rest interval, and blocking when a redundant predictor adds no new discrepancy.
 
