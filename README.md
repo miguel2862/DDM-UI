@@ -63,12 +63,12 @@ Learning in the DDM depends on two **discrepancy signals** — diffuse modulator
 
 1. **Dopaminergic discrepancy** ($\bar{d}_D$): The mean signed change in activation of D-layer units. When the US arrives and D units increase their activation, $\bar{d}_D$ is positive — this signals reinforcement. It modulates connections into M'' and M' layers.
 
-2. **Hippocampal discrepancy** ($\bar{d}_H$): The mean absolute change in activation of H-layer units, combined with the dopaminergic signal: $\bar{d}_H = |{\Delta a_H}| + \bar{d}_D \cdot (1 - \bar{d}_{H,t-1})$. It modulates connections into S'' and H layers.
+2. **Hippocampal discrepancy** ($\bar{d}_H$): The mean absolute change in activation of H-layer units, combined with the dopaminergic signal: $$\bar{d}_H = |\Delta a_H| + \bar{d}_D \cdot (1 - \bar{d}_{H,\,t-1})$$. It modulates connections into S'' and H layers.
 
 On each timestep, the learning rule checks whether the relevant discrepancy signal exceeds a criterion (default: 0.001):
 
 - **If $d \geq$ criterion** (reinforcement): Weights increase proportionally to the presynaptic activation, the postsynaptic activation, the remaining weight capacity ($r = 1 - \sum w$), and a learning-rate parameter $\alpha$.
-- **If $d <$ criterion** (decrement): Weights decrease proportionally to both pre- and postsynaptic activations and a decrement-rate parameter $\beta$ (default: 0.12).
+- **If $d <$ criterion** (decrement): Weights decrease proportionally to both pre- and postsynaptic activations and a decrement-rate parameter $\beta$ (default: 0.1).
 
 This dual mechanism produces the characteristic learning curves seen in conditioning: rapid acquisition when the US is unexpected, slow extinction when it is omitted, spontaneous recovery after a rest interval, and blocking when a redundant predictor adds no new discrepancy.
 
@@ -179,7 +179,22 @@ Individual tab for single-network analysis, General tab for cross-network aggreg
 
 #### 6. Parameter Sweep
 
-Sensitivity analysis. Pick a connection or NPE, choose a parameter (weight, $\alpha$, $\beta$, $\mu$, $\sigma$, $\tau$, $\kappa$...), set a range and step count (2–50), run N networks per step (1–20). Output: mean and median activation of a selected motor unit plotted against the swept parameter. Useful for finding thresholds — e.g., the minimum weight where blocking appears, or how $\tau$ affects acquisition speed.
+Systematic sensitivity analysis for any free parameter in the model. This page lets you ask: *"What happens to behavior if I change parameter X from value A to value B?"*
+
+**How it works:**
+
+1. **Choose a target** — either a connection or an NPE.
+2. **Choose a parameter** to sweep:
+   - For connections: weight, $\alpha$, $\beta$, $\alpha'$, $\beta'$
+   - For NPEs: $\mu$, $\sigma$, $\tau$ (temporal summation), $\kappa$ (activation decay), logistic $\sigma$
+3. **Set a range** (min and max values) and **number of steps** (2–50). The simulator will divide the range into evenly spaced values.
+4. **Set networks per step** (1–20). At each step, it runs N independent networks and averages the results, accounting for stochastic variability from threshold sampling and randomized update order.
+5. **Select an output unit** — any non-input NPE (typically a motor unit like M'1) whose mean activation across the last phase will be plotted.
+6. **Run**. The sweep launches one full simulation per step per network. A progress bar tracks completion.
+
+**Output**: A line chart plotting the swept parameter (x-axis) against mean and median activation of the output unit (y-axis). This reveals how sensitive the model is to that parameter — for example, the minimum initial weight at which blocking emerges, how temporal summation ($\tau$) affects acquisition speed, or how the discrepancy criterion interacts with decrement rate ($\beta$).
+
+Results can be exported as CSV for further analysis.
 
 #### 7. Help
 
@@ -216,7 +231,7 @@ Then create 6 connections:
 | M''1 → M'1 | 0.10 | Association → behavioral output |
 | US → D | **1.00** | Fixed — US unconditionally activates D |
 
-All connections use default learning rates: $\alpha = 0.5$, $\beta = 0.12$, $\alpha' = 0.5$, $\beta' = 0.12$.
+All connections use default learning rates: $\alpha = 0.5$, $\beta = 0.1$, $\alpha' = 0.5$, $\beta' = 0.1$.
 
 > The US → D connection must always have weight = 1.0. This is what makes the US biologically significant — it drives the dopaminergic discrepancy signal without requiring learning.
 
