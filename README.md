@@ -351,7 +351,7 @@ shiny::runApp('R/DDM_UI (2026).R')
 
 ## Reference
 
-- Aguayo-Mendoza, M.A., Burgos, J.E. & Valerio-dos-Santos, C. [DDM-UI: A user interface in R for the discrepancy diffuse model in behavioral research](https://link.springer.com/article/10.3758/s13428-025-02648-9). *Behavior Research Methods* (2025).
+- Aguayo-Mendoza, M., & Dos Santos, C. V. (2025). [DDM-UI: A user interface in R for the discrepancy diffuse model in behavioral research](https://doi.org/10.3758/s13428-025-02648-9). *Behavior Research Methods*, 57(5), 128.
 - Donahoe, J. W., Burgos, J. E., & Palmer, D. C. (1993). A selectionist approach to reinforcement. *Journal of the Experimental Analysis of Behavior*, 60(1), 17–40.
 
 ---
