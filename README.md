@@ -21,92 +21,6 @@ Whether you study extinction, blocking, latent inhibition, or autoshaped choice,
 
 ---
 
-## The Model
-
-The Diffuse Temporal Discrepancy (DTD) model belongs to a family of biologically inspired neural network models designed to account for behavioral phenomena in conditioning. Unlike purely mathematical models (Rescorla-Wagner, temporal-difference learning), the DTD operates at the level of neural processing elements (NPEs) organized in layers that mirror functional brain systems.
-
-### Architecture
-
-The basic network has **7 NPEs across 6 layers**:
-
-```
-                ┌─────────────────────────────────────┐
-                │         Network Architecture        │
-                └─────────────────────────────────────┘
-
-   Sensory side                              Motor side
-  ┌──────────┐      ┌──────────┐      ┌──────────┐
-  │   S'     │─────▶│   S''    │─────▶│   M''    │──────▶┌──────────┐
-  │ Primary  │      │ Assoc.   │─┐    │ Assoc.   │──┐    │   M'     │
-  │ Sensory  │      │ Sensory  │ │    │ Motor    │  │    │ Primary  │
-  └──────────┘      └──────────┘ │    └──────────┘  │    │ Motor    │
-                                 │                  │    └──────────┘
-                                 ▼                  ▼
-                            ┌──────────┐      ┌──────────┐
-                            │    H     │      │    D     │◀── US
-                            │ Hippo-   │      │ Dopami-  │   (weight
-                            │ campal   │      │ nergic   │    = 1.0)
-                            └──────────┘      └──────────┘
-```
-
-- **S'** (Primary Sensory): Receives direct sensory input — the CS.
-- **S''** (Associative Sensory): Integrates sensory information and projects forward.
-- **H** (Hippocampal): Involved in contextual and configural processing. Modulated by the hippocampal discrepancy signal.
-- **M''** (Associative Motor): Bridges sensory associations to motor output. Modulated by the dopaminergic discrepancy signal.
-- **M'** (Primary Motor): The behavioral output — conditioned responding.
-- **D** (Dopaminergic): Receives a fixed connection from the US (weight = 1.0). Its activation change drives reinforcement.
-- **US** (Unconditioned Stimulus): External input representing a biologically significant event.
-
-### How learning works
-
-Learning in the DTD depends on two **discrepancy signals** — diffuse modulatory signals that determine whether synaptic weights increase or decrease:
-
-1. **Dopaminergic discrepancy** — the mean **signed** change in activation across D-layer units. When the US arrives and D units increase their activation, $\bar{d}_D$ is positive — this signals reinforcement. It modulates connections into $M''$, $D$, and $M'$ layers.
-
-$$
-\bar{d}\_{D,t} = \frac{1}{n\_D}\sum\_{m=1}^{n\_D}\left(a\_{D\_m,t} - a\_{D\_m,t-1}\right)
-$$
-
-2. **Hippocampal discrepancy** — the mean **absolute** change in activation across H-layer units, combined with the dopaminergic signal. It modulates connections into $S''$ and $H$ layers. The factor $(1 - \bar{d}\_{H,t-1})$ acts as a saturation mechanism that prevents the signal from exceeding its upper bound.
-
-$$
-\bar{d}\_{H,t} = \frac{1}{n\_H}\sum\_{k=1}^{n\_H}\left|a\_{H\_k,t} - a\_{H\_k,t-1}\right| + \bar{d}\_{D,t}\left(1 - \bar{d}\_{H,t-1}\right)
-$$
-
-On each timestep, the learning rule checks whether the relevant discrepancy $d_t$ exceeds a criterion (default: 0.001):
-
-$$
-\Delta w\_{i,j,t} = \begin{cases} \alpha \cdot a\_{j,t} \cdot p\_{i,t} \cdot r\_{j,t} \cdot d\_t & \text{if } d\_t \geq 0.001 \quad \text{(weight gain)} \\\ -\beta \cdot a\_{i,t} \cdot a\_{j,t} & \text{otherwise} \quad \text{(weight loss)} \end{cases}
-$$
-
-Where $p\_{i,t}$ is the proportional contribution of unit $i$ to the total excitatory input at $j$, and $r\_{j,t} = 1 - \sum w\_{i,j,t}$ is the remaining weight capacity.
-
-This dual mechanism produces the characteristic learning curves seen in conditioning: rapid acquisition when the US is unexpected, slow extinction when it is omitted, spontaneous recovery after a rest interval, and blocking when a redundant predictor adds no new discrepancy.
-
-### What it can simulate
-
-The simulator ships with 7 pre-built templates covering core phenomena:
-
-| Phenomenon | What it shows |
-|---|---|
-| **Acquisition** | A neutral CS gradually elicits a conditioned response through repeated CS-US pairing |
-| **Extinction** | Conditioned responding decreases when the CS is presented without the US |
-| **Spontaneous Recovery** | After extinction, responding partially returns following a rest interval |
-| **Latent Inhibition** | Pre-exposure to a CS without consequence slows subsequent conditioning |
-| **Blocking** | Prior training with A+ prevents learning about X when AX+ is presented |
-| **Successive conditioning** | Independent A+ then X+ training — baseline comparison for blocking |
-| **Autoshaped Impulsivity** | Smaller-Sooner vs. Larger-Later choice with delay and context stimuli |
-
-Each template loads the full architecture, trials, and contingencies. You can also build your own networks from scratch for any conditioning paradigm.
-
----
-
-## Demo
-
-https://github.com/miguel2862/DDM-UI/raw/main/video.mp4
-
----
-
 ## DDM-UI v3.0 — Standalone Desktop Application
 
 Version 3.0 is a complete ground-up redesign. The original single-file R Shiny application (3,908 lines) has been replaced by a standalone desktop application: a React 18 + TypeScript frontend driving the full R simulation engine through a local Plumber API. Everything is bundled inside the installer — R Portable, all 84+ packages, the frontend, the API. No dependencies. No configuration. Download, install, open.
@@ -122,9 +36,24 @@ Version 3.0 is a complete ground-up redesign. The original single-file R Shiny a
 
 Both installers bundle **R Portable** with all required packages pre-installed (plumber, jsonlite, dplyr, igraph, tidygraph, ggraph, visNetwork, httpuv, Rcpp, and every transitive dependency). The user does not need R, RStudio, or any other software.
 
+### Quick Start
+
+1. Download the installer for your platform.
+2. **macOS**: Open the `.dmg`, drag to Applications. If Gatekeeper blocks it, right-click → Open → confirm.
+3. **Windows**: Run the `.exe`, follow prompts. If SmartScreen warns, click "More info" → "Run anyway".
+4. Launch DDM-UI. R starts in the background automatically.
+5. Click any template on the Dashboard (e.g. Extinction), go to Simulation, click Run.
+6. Use playback to step through the network, or go to Results for charts and CSV export.
+
 ---
 
-### What's in v3.0
+## Demo
+
+https://github.com/miguel2862/DDM-UI/raw/main/video.mp4
+
+---
+
+## What's in v3.0
 
 **Frontend stack**: React 18, TypeScript (strict), Tailwind CSS v4, Zustand (state), React Flow (network canvas), Recharts (charts), Framer Motion (animations), Lucide (icons). Dark theme throughout — navy (#0f172a) background, cyan/teal accents.
 
@@ -140,7 +69,7 @@ Both installers bundle **R Portable** with all required packages pre-installed (
 
 #### 1. Dashboard
 
-Landing page. Animated SVG hero showing the 7-unit DDM architecture ($S'$, $S''$, $M''$, $M'$, $H$, $D$, $US$) with pulsing nodes, stroking connection lines, and two diffuse discrepancy signal clouds ($S''+H$ hippocampal, $M''+D$ dopaminergic). Four stat cards track the current model (NPEs, connections, trial types, phases). A workflow strip shows progress across the five stages.
+Landing page. Animated SVG hero showing the 7-unit DTD architecture ($S'$, $S''$, $M''$, $M'$, $H$, $D$, $US$) with pulsing nodes, stroking connection lines, and two diffuse discrepancy signal clouds ($S''+H$ hippocampal, $M''+D$ dopaminergic). Four stat cards track the current model (NPEs, connections, trial types, phases). A workflow strip shows progress across the five stages.
 
 **Phenomenon gallery** — 7 pre-built templates, one click each:
 
@@ -292,14 +221,83 @@ Switch to **Learning Signals** to see $\bar{d}_D$ — it starts high (the US is 
 
 ---
 
-### Quick Start
+## The Model
 
-1. Download the installer for your platform.
-2. **macOS**: Open the `.dmg`, drag to Applications. If Gatekeeper blocks it, right-click → Open → confirm.
-3. **Windows**: Run the `.exe`, follow prompts. If SmartScreen warns, click "More info" → "Run anyway".
-4. Launch DDM-UI. R starts in the background automatically.
-5. Click any template on the Dashboard (e.g. Extinction), go to Simulation, click Run.
-6. Use playback to step through the network, or go to Results for charts and CSV export.
+The Diffuse Temporal Discrepancy (DTD) model belongs to a family of biologically inspired neural network models designed to account for behavioral phenomena in conditioning. Unlike purely mathematical models (Rescorla-Wagner, temporal-difference learning), the DTD operates at the level of neural processing elements (NPEs) organized in layers that mirror functional brain systems.
+
+### Architecture
+
+The basic network has **7 NPEs across 6 layers**:
+
+```
+                ┌─────────────────────────────────────┐
+                │         Network Architecture        │
+                └─────────────────────────────────────┘
+
+   Sensory side                              Motor side
+  ┌──────────┐      ┌──────────┐      ┌──────────┐
+  │   S'     │─────▶│   S''    │─────▶│   M''    │──────▶┌──────────┐
+  │ Primary  │      │ Assoc.   │─┐    │ Assoc.   │──┐    │   M'     │
+  │ Sensory  │      │ Sensory  │ │    │ Motor    │  │    │ Primary  │
+  └──────────┘      └──────────┘ │    └──────────┘  │    │ Motor    │
+                                 │                  │    └──────────┘
+                                 ▼                  ▼
+                            ┌──────────┐      ┌──────────┐
+                            │    H     │      │    D     │◀── US
+                            │ Hippo-   │      │ Dopami-  │   (weight
+                            │ campal   │      │ nergic   │    = 1.0)
+                            └──────────┘      └──────────┘
+```
+
+- **S'** (Primary Sensory): Receives direct sensory input — the CS.
+- **S''** (Associative Sensory): Integrates sensory information and projects forward.
+- **H** (Hippocampal): Involved in contextual and configural processing. Modulated by the hippocampal discrepancy signal.
+- **M''** (Associative Motor): Bridges sensory associations to motor output. Modulated by the dopaminergic discrepancy signal.
+- **M'** (Primary Motor): The behavioral output — conditioned responding.
+- **D** (Dopaminergic): Receives a fixed connection from the US (weight = 1.0). Its activation change drives reinforcement.
+- **US** (Unconditioned Stimulus): External input representing a biologically significant event.
+
+### How learning works
+
+Learning in the DTD depends on two **discrepancy signals** — diffuse modulatory signals that determine whether synaptic weights increase or decrease:
+
+1. **Dopaminergic discrepancy** — the mean **signed** change in activation across D-layer units. When the US arrives and D units increase their activation, $\bar{d}_D$ is positive — this signals reinforcement. It modulates connections into $M''$, $D$, and $M'$ layers.
+
+$$
+\bar{d}\_{D,t} = \frac{1}{n\_D}\sum\_{m=1}^{n\_D}\left(a\_{D\_m,t} - a\_{D\_m,t-1}\right)
+$$
+
+2. **Hippocampal discrepancy** — the mean **absolute** change in activation across H-layer units, combined with the dopaminergic signal. It modulates connections into $S''$ and $H$ layers. The factor $(1 - \bar{d}\_{H,t-1})$ acts as a saturation mechanism that prevents the signal from exceeding its upper bound.
+
+$$
+\bar{d}\_{H,t} = \frac{1}{n\_H}\sum\_{k=1}^{n\_H}\left|a\_{H\_k,t} - a\_{H\_k,t-1}\right| + \bar{d}\_{D,t}\left(1 - \bar{d}\_{H,t-1}\right)
+$$
+
+On each timestep, the learning rule checks whether the relevant discrepancy $d_t$ exceeds a criterion (default: 0.001):
+
+$$
+\Delta w\_{i,j,t} = \begin{cases} \alpha \cdot a\_{j,t} \cdot p\_{i,t} \cdot r\_{j,t} \cdot d\_t & \text{if } d\_t \geq 0.001 \quad \text{(weight gain)} \\\ -\beta \cdot a\_{i,t} \cdot a\_{j,t} & \text{otherwise} \quad \text{(weight loss)} \end{cases}
+$$
+
+Where $p\_{i,t}$ is the proportional contribution of unit $i$ to the total excitatory input at $j$, and $r\_{j,t} = 1 - \sum w\_{i,j,t}$ is the remaining weight capacity.
+
+This dual mechanism produces the characteristic learning curves seen in conditioning: rapid acquisition when the US is unexpected, slow extinction when it is omitted, spontaneous recovery after a rest interval, and blocking when a redundant predictor adds no new discrepancy.
+
+### What it can simulate
+
+The simulator ships with 7 pre-built templates covering core phenomena:
+
+| Phenomenon | What it shows |
+|---|---|
+| **Acquisition** | A neutral CS gradually elicits a conditioned response through repeated CS-US pairing |
+| **Extinction** | Conditioned responding decreases when the CS is presented without the US |
+| **Spontaneous Recovery** | After extinction, responding partially returns following a rest interval |
+| **Latent Inhibition** | Pre-exposure to a CS without consequence slows subsequent conditioning |
+| **Blocking** | Prior training with A+ prevents learning about X when AX+ is presented |
+| **Successive conditioning** | Independent A+ then X+ training — baseline comparison for blocking |
+| **Autoshaped Impulsivity** | Smaller-Sooner vs. Larger-Later choice with delay and context stimuli |
+
+Each template loads the full architecture, trials, and contingencies. You can also build your own networks from scratch for any conditioning paradigm.
 
 ---
 
