@@ -15,7 +15,84 @@
 
 ## About
 
-The Diffuse Discrepancy Model (DiffDiscM) Simulator is an open-source tool for behavioral research based on Donahoe, Burgos, and Palmer (1993). It provides a connectionist implementation of reinforcement principles for both Pavlovian and operant conditioning.
+DDM-UI is an open-source simulator for the **Diffuse Discrepancy Model** (Donahoe, Burgos, & Palmer, 1993) — a connectionist model of Pavlovian and operant conditioning grounded in behavioral neuroscience. It lets researchers build neural network architectures, define experimental contingencies, run simulations, and visualize how associative learning unfolds trial by trial.
+
+Whether you study extinction, blocking, latent inhibition, or autoshaped choice, this tool lets you set up the experiment, run the simulation, and see what the model predicts — without writing a single line of code.
+
+---
+
+## The Model
+
+The Diffuse Discrepancy Model belongs to a family of biologically inspired neural network models designed to account for behavioral phenomena in conditioning. Unlike purely mathematical models (Rescorla-Wagner, temporal-difference learning), the DDM operates at the level of neural processing elements (NPEs) organized in layers that mirror functional brain systems.
+
+### Architecture
+
+The basic network has **7 NPEs across 6 layers**:
+
+```
+                ┌─────────────────────────────────────┐
+                │         Network Architecture        │
+                └─────────────────────────────────────┘
+
+   Sensory side                              Motor side
+  ┌──────────┐      ┌──────────┐      ┌──────────┐
+  │   S'     │─────▶│   S''    │─────▶│   M''    │──────▶┌──────────┐
+  │ Primary  │      │ Assoc.   │─┐    │ Assoc.   │──┐    │   M'     │
+  │ Sensory  │      │ Sensory  │ │    │ Motor    │  │    │ Primary  │
+  └──────────┘      └──────────┘ │    └──────────┘  │    │ Motor    │
+                                 │                  │    └──────────┘
+                                 ▼                  ▼
+                            ┌──────────┐      ┌──────────┐
+                            │    H     │      │    D     │◀── US
+                            │ Hippo-   │      │ Dopami-  │   (weight
+                            │ campal   │      │ nergic   │    = 1.0)
+                            └──────────┘      └──────────┘
+```
+
+- **S'** (Primary Sensory): Receives direct sensory input — the CS.
+- **S''** (Associative Sensory): Integrates sensory information and projects forward.
+- **H** (Hippocampal): Involved in contextual and configural processing. Modulated by the hippocampal discrepancy signal.
+- **M''** (Associative Motor): Bridges sensory associations to motor output. Modulated by the dopaminergic discrepancy signal.
+- **M'** (Primary Motor): The behavioral output — conditioned responding.
+- **D** (Dopaminergic): Receives a fixed connection from the US (weight = 1.0). Its activation change drives reinforcement.
+- **US** (Unconditioned Stimulus): External input representing a biologically significant event.
+
+### How learning works
+
+Learning in the DDM depends on two **discrepancy signals** — diffuse modulatory signals that determine whether synaptic weights increase or decrease:
+
+1. **Dopaminergic discrepancy** ($\bar{d}_D$): The mean signed change in activation of D-layer units. When the US arrives and D units increase their activation, $\bar{d}_D$ is positive — this signals reinforcement. It modulates connections into M'' and M' layers.
+
+2. **Hippocampal discrepancy** ($\bar{d}_H$): The mean absolute change in activation of H-layer units, combined with the dopaminergic signal: $\bar{d}_H = |{\Delta a_H}| + \bar{d}_D \cdot (1 - \bar{d}_{H,t-1})$. It modulates connections into S'' and H layers.
+
+On each timestep, the learning rule checks whether the relevant discrepancy signal exceeds a criterion (default: 0.001):
+
+- **If $d \geq$ criterion** (reinforcement): Weights increase proportionally to the presynaptic activation, the postsynaptic activation, the remaining weight capacity ($r = 1 - \sum w$), and a learning-rate parameter $\alpha$.
+- **If $d <$ criterion** (decrement): Weights decrease proportionally to both pre- and postsynaptic activations and a decrement-rate parameter $\beta$ (default: 0.12).
+
+This dual mechanism produces the characteristic learning curves seen in conditioning: rapid acquisition when the US is unexpected, slow extinction when it is omitted, spontaneous recovery after a rest interval, and blocking when a redundant predictor adds no new discrepancy.
+
+### What it can simulate
+
+The simulator ships with 7 pre-built templates covering core phenomena:
+
+| Phenomenon | What it shows |
+|---|---|
+| **Acquisition** | A neutral CS gradually elicits a conditioned response through repeated CS-US pairing |
+| **Extinction** | Conditioned responding decreases when the CS is presented without the US |
+| **Spontaneous Recovery** | After extinction, responding partially returns following a rest interval |
+| **Latent Inhibition** | Pre-exposure to a CS without consequence slows subsequent conditioning |
+| **Blocking** | Prior training with A+ prevents learning about X when AX+ is presented |
+| **Successive conditioning** | Independent A+ then X+ training — baseline comparison for blocking |
+| **Autoshaped Impulsivity** | Smaller-Sooner vs. Larger-Later choice with delay and context stimuli |
+
+Each template loads the full architecture, trials, and contingencies. You can also build your own networks from scratch for any conditioning paradigm.
+
+---
+
+## Demo
+
+https://github.com/miguel2862/DDM-UI/raw/main/video.mp4
 
 ---
 
@@ -110,6 +187,85 @@ In-app documentation.
 
 ---
 
+## Tutorial: Building an Acquisition Experiment Step by Step
+
+This walkthrough shows how to set up the simplest possible experiment — Pavlovian acquisition — from scratch. The same experiment is available as a one-click template on the Dashboard, but building it manually helps you understand the structure so you can design your own paradigms.
+
+### Step 1: Build the Network (Network Builder)
+
+Create 7 NPEs (neural processing elements):
+
+| NPE | Type | Layer |
+|---|---|---|
+| US | Excitatory | US |
+| D | Excitatory | Dopaminergic |
+| S1 | Excitatory | Primary Sensory |
+| S''1 | Excitatory | Associative Sensory |
+| H1 | Excitatory | Hippocampal |
+| M''1 | Excitatory | Associative Motor |
+| M'1 | Excitatory | Primary Motor |
+
+Then create 6 connections:
+
+| From → To | Initial Weight | Role |
+|---|---|---|
+| S1 → S''1 | 0.10 | CS sensory relay |
+| S''1 → H1 | 0.10 | Sensory → hippocampal |
+| S''1 → M''1 | 0.10 | Sensory → motor association |
+| M''1 → D | 0.10 | Motor → dopamine prediction |
+| M''1 → M'1 | 0.10 | Association → behavioral output |
+| US → D | **1.00** | Fixed — US unconditionally activates D |
+
+All connections use default learning rates: $\alpha = 0.5$, $\beta = 0.12$, $\alpha' = 0.5$, $\beta' = 0.12$.
+
+> The US → D connection must always have weight = 1.0. This is what makes the US biologically significant — it drives the dopaminergic discrepancy signal without requiring learning.
+
+### Step 2: Design the Trial (Trial Designer)
+
+Create a trial type called **"Training"** with **5 timesteps**:
+
+| Timestep | S1 (CS) | US | Learning |
+|---|---|---|---|
+| 1 | 1.0 | 0.0 | On |
+| 2 | 1.0 | 0.0 | On |
+| 3 | 1.0 | 0.0 | On |
+| 4 | 1.0 | 0.0 | On |
+| 5 | 1.0 | **1.0** | On |
+
+The CS (S1) is present throughout the trial. The US appears only on the last timestep — this is the standard delay conditioning arrangement.
+
+### Step 3: Set Up Contingencies (Trial Designer → Contingencies)
+
+Create one phase:
+
+| Phase name | Trial type | Number of trials | Order | ITI |
+|---|---|---|---|---|
+| Training | Training | 100 | Random | Off |
+
+This gives you 100 CS-US pairings in randomized order.
+
+### Step 4: Run the Simulation (Simulation)
+
+- Networks: **1** (or more if you want to average across stochastic variation)
+- Threshold: **Gaussian** (default)
+- Click **Run**
+
+The simulation takes a few seconds. Each trial has 5 timesteps, and on each timestep the network computes activations, checks the discrepancy signals, and updates weights.
+
+### Step 5: Interpret the Results (Results)
+
+Go to the **Results** page and select the **Activations** chart. Plot **M'1** (the primary motor unit — the conditioned response).
+
+You should see M'1 activation rise across trials: low at the beginning (the CS doesn't yet predict the US), increasing as weights strengthen, and approaching an asymptote after roughly 40-60 trials. This is the acquisition curve.
+
+Switch to the **Weights** chart to see how S1→S''1, S''1→M''1, and M''1→M'1 grow over training. The US→D weight stays fixed at 1.0.
+
+Switch to **Learning Signals** to see $\bar{d}_D$ — it starts high (the US is unexpected) and decreases as the network learns to predict it.
+
+> **Tip**: This is the same result you get by clicking **"Acquisition"** in the Dashboard gallery. Use the templates for quick results, and the manual setup when you need custom architectures.
+
+---
+
 ### Quick Start
 
 1. Download the installer for your platform.
@@ -180,7 +336,8 @@ shiny::runApp('R/DDM_UI (2026).R')
 
 ## Reference
 
-- [DDM-UI: A user interface in R for the discrepancy diffuse model in behavioral research](https://link.springer.com/article/10.3758/s13428-025-02648-9)
+- Aguayo-Mendoza, M.A., Burgos, J.E. & Valerio-dos-Santos, C. [DDM-UI: A user interface in R for the discrepancy diffuse model in behavioral research](https://link.springer.com/article/10.3758/s13428-025-02648-9). *Behavior Research Methods* (2025).
+- Donahoe, J. W., Burgos, J. E., & Palmer, D. C. (1993). A selectionist approach to reinforcement. *Journal of the Experimental Analysis of Behavior*, 60(1), 17–40.
 
 ---
 
