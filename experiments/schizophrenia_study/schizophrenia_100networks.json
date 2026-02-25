@@ -1,0 +1,212 @@
+{
+  "_type": "ddm-ui-experiment",
+  "_version": "3.0",
+  "exportedAt": "2026-02-25T00:00:00.000Z",
+  "npes": [
+    {
+      "name": "US",
+      "type": "Excitatory",
+      "layer": "US",
+      "activation": 0,
+      "temporalSummation": 0.05,
+      "activationDecay": 0.3,
+      "mu": 0.2,
+      "sigma": 0.25,
+      "logisSigma": 0.1
+    },
+    {
+      "name": "D",
+      "type": "Excitatory",
+      "layer": "Dopaminergic",
+      "activation": 0,
+      "temporalSummation": 0.05,
+      "activationDecay": 0.3,
+      "mu": 0.2,
+      "sigma": 0.25,
+      "logisSigma": 0.3
+    },
+    {
+      "name": "S.1",
+      "type": "Excitatory",
+      "layer": "PrimarySensory",
+      "activation": 0,
+      "temporalSummation": 0.05,
+      "activationDecay": 0.3,
+      "mu": 0.2,
+      "sigma": 0.25,
+      "logisSigma": 0.1
+    },
+    {
+      "name": "S..1",
+      "type": "Excitatory",
+      "layer": "AssociativeSensory",
+      "activation": 0,
+      "temporalSummation": 0.05,
+      "activationDecay": 0.3,
+      "mu": 0.2,
+      "sigma": 0.25,
+      "logisSigma": 0.1
+    },
+    {
+      "name": "H1",
+      "type": "Excitatory",
+      "layer": "Hippocampal",
+      "activation": 0,
+      "temporalSummation": 0.05,
+      "activationDecay": 0.3,
+      "mu": 0.2,
+      "sigma": 0.25,
+      "logisSigma": 0.1
+    },
+    {
+      "name": "M..1",
+      "type": "Excitatory",
+      "layer": "AssociativeMotor",
+      "activation": 0,
+      "temporalSummation": 0.05,
+      "activationDecay": 0.3,
+      "mu": 0.2,
+      "sigma": 0.25,
+      "logisSigma": 0.1
+    },
+    {
+      "name": "M.1",
+      "type": "Excitatory",
+      "layer": "PrimaryMotor",
+      "activation": 0,
+      "temporalSummation": 0.05,
+      "activationDecay": 0.3,
+      "mu": 0.2,
+      "sigma": 0.25,
+      "logisSigma": 0.1
+    }
+  ],
+  "connections": [
+    {
+      "presynapticNPE": "S.1",
+      "postsynapticNPE": "S..1",
+      "weight": 0.1,
+      "alpha": 0.4,
+      "beta": 0.15,
+      "alphaPrime": 0.5,
+      "betaPrime": 0.1
+    },
+    {
+      "presynapticNPE": "S..1",
+      "postsynapticNPE": "H1",
+      "weight": 0.1,
+      "alpha": 0.3,
+      "beta": 0.2,
+      "alphaPrime": 0.5,
+      "betaPrime": 0.1
+    },
+    {
+      "presynapticNPE": "S..1",
+      "postsynapticNPE": "M..1",
+      "weight": 0.1,
+      "alpha": 0.35,
+      "beta": 0.15,
+      "alphaPrime": 0.5,
+      "betaPrime": 0.1
+    },
+    {
+      "presynapticNPE": "M..1",
+      "postsynapticNPE": "D",
+      "weight": 0.1,
+      "alpha": 0.6,
+      "beta": 0.05,
+      "alphaPrime": 0.5,
+      "betaPrime": 0.1
+    },
+    {
+      "presynapticNPE": "M..1",
+      "postsynapticNPE": "M.1",
+      "weight": 0.1,
+      "alpha": 0.4,
+      "beta": 0.12,
+      "alphaPrime": 0.5,
+      "betaPrime": 0.1
+    },
+    {
+      "presynapticNPE": "US",
+      "postsynapticNPE": "D",
+      "weight": 1.0,
+      "alpha": 0.65,
+      "beta": 0.03,
+      "alphaPrime": 0.5,
+      "betaPrime": 0.1
+    }
+  ],
+  "trials": {
+    "Ent1": [
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,1.00,S.1,1.00,True"
+    ],
+    "Ent2": [
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,1.00,S.1,1.00,True"
+    ],
+    "Ent3": [
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,1.00,S.1,1.00,True"
+    ],
+    "Ent4": [
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,1.00,S.1,1.00,True"
+    ],
+    "Ent5": [
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,0.00,S.1,1.00,True",
+      "US,1.00,S.1,1.00,True"
+    ],
+    "Prueba": [
+      "US,0.00,S.1,1.00,False",
+      "US,0.00,S.1,1.00,False",
+      "US,0.00,S.1,1.00,False",
+      "US,0.00,S.1,1.00,False",
+      "US,0.00,S.1,1.00,False",
+      "US,1.00,S.1,1.00,False"
+    ]
+  },
+  "contingencies": [
+    "Inst1, Random, Ent1, 100, False",
+    "prueba1, In bulk, Prueba, 25, False",
+    "Inst2, Random, Ent2, 100, False",
+    "prueba2, In bulk, Prueba, 25, False",
+    "Inst3, Random, Ent3, 100, False",
+    "prueba3, In bulk, Prueba, 25, False",
+    "Inst4, Random, Ent4, 100, False",
+    "prueba4, In bulk, Prueba, 25, False",
+    "Inst5, Random, Ent5, 100, False",
+    "prueba5, In bulk, Prueba, 25, False"
+  ],
+  "hasITI": [false, false, false, false, false, false, false, false, false, false],
+  "numNetworks": 100,
+  "thresholdPreset": "gaussian_ddmui",
+  "disc": 0.001,
+  "pupdate": "async_random"
+}
