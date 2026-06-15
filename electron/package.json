@@ -9,9 +9,10 @@
     "start": "electron .",
     "build:frontend": "cd ../frontend && npm run build",
     "setup:r": "node scripts/setup-r-portable.js",
-    "dist:mac": "npm run build:frontend && electron-builder --mac",
-    "dist:win": "npm run build:frontend && electron-builder --win",
-    "dist": "npm run build:frontend && electron-builder --mac --win"
+    "setup:r:win": "node scripts/setup-r-portable-win.js",
+    "dist:mac": "npm run setup:r && npm run build:frontend && electron-builder --mac",
+    "dist:win": "npm run setup:r:win && npm run build:frontend && electron-builder --win",
+    "dist": "npm run setup:r && npm run setup:r:win && npm run build:frontend && electron-builder --mac --win"
   },
   "dependencies": {
     "electron-is-dev": "^2.0.0"
@@ -24,13 +25,13 @@
     "appId": "com.ddm-ui.app",
     "productName": "DDM-UI",
     "copyright": "Copyright © 2026 Miguel Ángel Aguayo Mendoza - University of Guadalajara",
+    "artifactName": "${productName}.${ext}",
     "directories": {
       "output": "release"
     },
+    "afterPack": "scripts/after-pack.js",
     "files": [
-      "main.js",
-      "preload.js",
-      "icon.ico"
+      "main.js"
     ],
     "extraResources": [
       {
