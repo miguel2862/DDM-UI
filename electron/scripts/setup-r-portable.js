@@ -30,6 +30,76 @@ function run(cmd) {
   return execSync(cmd, { encoding: 'utf-8', stdio: 'pipe' }).trim();
 }
 
+function walk(dir, fn) {
+  if (!fs.existsSync(dir)) return;
+
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      fn(entryPath, entry);
+      walk(entryPath, fn);
+    } else {
+      fn(entryPath, entry);
+    }
+  }
+}
+
+function removeDebugSymbols(dir) {
+  const dsyms = [];
+  walk(dir, (entryPath, entry) => {
+    if (entry.isDirectory() && entry.name.endsWith('.dSYM')) {
+      dsyms.push(entryPath);
+    }
+  });
+
+  for (const dsym of dsyms.sort((a, b) => b.length - a.length)) {
+    fs.rmSync(dsym, { recursive: true, force: true });
+  }
+
+  if (dsyms.length > 0) {
+    console.log(`  Removed ${dsyms.length} debug symbol directories`);
+  }
+}
+
+function normalizeMacNativeCode() {
+  if (process.platform !== 'darwin') return;
+
+  console.log('\nNormalizing macOS native libraries...');
+  spawnSync('/usr/bin/xattr', ['-cr', R_PORTABLE_DIR], { stdio: 'pipe' });
+
+  const nativeFiles = [];
+  walk(R_PORTABLE_DIR, (entryPath, entry) => {
+    if (!entry.isFile()) return;
+    if (entryPath.includes('.dSYM')) return;
+    if (entryPath.endsWith('.so') || entryPath.endsWith('.dylib')) {
+      nativeFiles.push(entryPath);
+    }
+  });
+
+  const executables = [
+    path.join(R_PORTABLE_DIR, 'R'),
+    path.join(R_PORTABLE_DIR, 'Rscript'),
+    path.join(R_PORTABLE_DIR, 'bin', 'R'),
+    path.join(R_PORTABLE_DIR, 'bin', 'Rscript'),
+    path.join(R_PORTABLE_DIR, 'bin', 'exec', 'R'),
+  ].filter(file => fs.existsSync(file));
+
+  for (const file of executables) {
+    fs.chmodSync(file, fs.statSync(file).mode | 0o755);
+    nativeFiles.push(file);
+  }
+
+  let signed = 0;
+  for (const file of nativeFiles) {
+    const result = spawnSync('/usr/bin/codesign', ['--force', '--sign', '-', file], {
+      stdio: 'pipe',
+    });
+    if (result.status === 0) signed++;
+  }
+
+  console.log(`  Ad-hoc signed ${signed} native files`);
+}
+
 function main() {
   console.log('═══════════════════════════════════════════════════════');
   console.log('  DDM-UI — R Portable Setup');
@@ -125,6 +195,9 @@ function main() {
     }
   }
   console.log(`  Copied ${copied} packages`);
+
+  removeDebugSymbols(portableLib);
+  normalizeMacNativeCode();
 
   // 6. Verify
   console.log('\nVerifying R-portable...');

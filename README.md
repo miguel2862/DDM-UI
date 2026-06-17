@@ -39,11 +39,30 @@ Both installers bundle **R Portable** with all required packages pre-installed (
 ### Quick Start
 
 1. Download the installer for your platform.
-2. **macOS**: Open the `.dmg`, drag to Applications. If Gatekeeper blocks it, right-click → Open → confirm.
+2. **macOS**: Open the `.dmg`, drag `DDM-UI.app` to Applications, then open it from Finder.
 3. **Windows**: Run the `.exe`, follow prompts. If SmartScreen warns, click "More info" → "Run anyway".
 4. Launch DDM-UI. R starts in the background automatically.
 5. Click any template on the Dashboard (e.g. Extinction), go to Simulation, click Run.
 6. Use playback to step through the network, or go to Results for charts and CSV export.
+
+### macOS Security Notice
+
+The macOS build is packaged with the full R simulation engine and is ad-hoc signed, but it is not yet notarized with Apple Developer ID. On first launch, macOS may show:
+
+> "Apple could not verify that DDM-UI is free of malware that may harm your Mac or compromise your privacy."
+
+or, in Spanish:
+
+> "Apple no pudo verificar que DDM-UI no contenga software malicioso que pudiera dañar tu Mac o poner tu privacidad en riesgo."
+
+This is a Gatekeeper verification warning for non-notarized apps. If you downloaded `DDM-UI.dmg` from this GitHub repository, open it with:
+
+1. Open the `.dmg` and drag `DDM-UI.app` to Applications.
+2. In Finder, open Applications.
+3. Control-click or right-click `DDM-UI.app`.
+4. Choose **Open**, then confirm **Open** again.
+
+If macOS still blocks it, go to **System Settings > Privacy & Security** and choose **Open Anyway** for DDM-UI.
 
 ---
 
@@ -395,7 +414,7 @@ University of Guadalajara — [CEIC Lab](http://www.ceic.cucba.udg.mx/Investigac
 
 ## Troubleshooting
 
-**macOS** — Gatekeeper block: right-click → Open → confirm (once).
+**macOS** — If Apple cannot verify DDM-UI, control-click or right-click the app in Applications, choose **Open**, then confirm. If needed, use **System Settings > Privacy & Security > Open Anyway**.
 **Windows** — SmartScreen warning: "More info" → "Run anyway".
 **Slow first launch** — R initializes on first run, wait a few seconds.
 **Can't run simulation** — need at least 2 NPEs, 1 connection, 1 trial type, 1 phase.
