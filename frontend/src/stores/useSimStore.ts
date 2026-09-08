@@ -1,5 +1,10 @@
 import { create } from 'zustand';
-import type { NPE, Connection, Phase, SimStatus, AppMode, SimulationResult, SimulationMetadata, ThresholdPreset } from '../types/ddm';
+import { assertDDMPayload } from '../utils/ddmCompatibility';
+import type { SimulationInspector } from '../types/inspector';
+import type {
+  NPE, Connection, Phase, SimStatus, AppMode, SimulationResult,
+  SimulationMetadata, ThresholdPreset, ModelKind,
+} from '../types/ddm';
 
 // Maps each unified preset to its R-backend threshold type + NPE mu/sigma
 const THRESHOLD_CONFIGS: Record<ThresholdPreset, { threshold: string; mu: number; sigma: number }> = {
@@ -8,8 +13,141 @@ const THRESHOLD_CONFIGS: Record<ThresholdPreset, { threshold: string; mu: number
   'beta_ddmui':           { threshold: 'beta',     mu: 0.2, sigma: 0.15 },
 };
 
+
+
+
+
+type UnknownRecord = Record<string, unknown>;
+
+const VALID_NPE_LAYERS: readonly NPE['layer'][] = [
+  'US', 'PrimarySensory', 'AssociativeSensory', 'Hippocampal', 'AssociativeMotor',
+  'PrimaryMotor', 'Dopaminergic',
+];
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function asRecord(value: unknown): UnknownRecord {
+  return isRecord(value) ? value : {};
+}
+
+function unboxScalar(value: unknown): unknown {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function toStringValue(value: unknown, fallback = ''): string {
+  const scalar = unboxScalar(value);
+  return scalar === undefined || scalar === null ? fallback : String(scalar);
+}
+
+function toNumberValue(value: unknown, fallback: number): number {
+  const parsed = Number(unboxScalar(value));
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function toBooleanValue(value: unknown, fallback = false): boolean {
+  const scalar = unboxScalar(value);
+  if (typeof scalar === 'boolean') return scalar;
+  if (typeof scalar === 'number') return scalar !== 0;
+  if (typeof scalar === 'string') {
+    if (scalar.toLowerCase() === 'true') return true;
+    if (scalar.toLowerCase() === 'false') return false;
+  }
+  return fallback;
+}
+
+function toStringArray(value: unknown, fallback: string[] = []): string[] {
+  if (value === undefined || value === null) return [...fallback];
+  const values = Array.isArray(value) ? value : [value];
+  return values.map((entry) => toStringValue(entry));
+}
+
+function toBooleanArray(value: unknown): boolean[] {
+  const values = Array.isArray(value) ? value : value === undefined ? [] : [value];
+  return values.map((entry) => toBooleanValue(entry));
+}
+
+function columnsToRows(value: unknown): UnknownRecord[] {
+  if (Array.isArray(value)) return value.filter(isRecord);
+  if (!isRecord(value)) return [];
+
+  const keys = Object.keys(value);
+  if (keys.length === 0) return [];
+  const firstValue = value[keys[0]];
+  if (!Array.isArray(firstValue)) return [value];
+
+  return Array.from({ length: firstValue.length }, (_, index) => {
+    const row: UnknownRecord = {};
+    for (const key of keys) {
+      const column = value[key];
+      row[key] = Array.isArray(column) ? column[index] : column;
+    }
+    return row;
+  });
+}
+
+function parseNPEType(value: unknown): NPE['type'] {
+  return toStringValue(value) === 'Inhibitory' ? 'Inhibitory' : 'Excitatory';
+}
+
+function parseNPELayer(value: unknown): NPE['layer'] {
+  const layer = toStringValue(value);
+  if (!VALID_NPE_LAYERS.includes(layer as NPE['layer'])) throw new Error(`Unsupported DDM layer: ${layer}`);
+  return layer as NPE['layer'];
+}
+
+function parseNPEs(value: unknown): NPE[] {
+  return columnsToRows(value).map((row) => ({
+    name: toStringValue(row.NPE ?? row.name),
+    type: parseNPEType(row.Type ?? row.type),
+    layer: parseNPELayer(row.Layer ?? row.layer),
+    activation: toNumberValue(row.Activation ?? row.activation, 0),
+    temporalSummation: toNumberValue(row['Temporal.Summation'] ?? row.temporalSummation, 0),
+    activationDecay: toNumberValue(row['Activation.Decay'] ?? row.activationDecay, 0),
+    mu: toNumberValue(row.mu, 0.2),
+    sigma: toNumberValue(row.sigma, 0.15),
+    logisSigma: toNumberValue(row.logisSigma, 1),
+  }));
+}
+
+function parseConnections(value: unknown): Connection[] {
+  return columnsToRows(value).map((row) => ({
+    presynapticNPE: toStringValue(row.PreSinapticNPE ?? row.presynapticNPE),
+    postsynapticNPE: toStringValue(row.PostSinapticNPE ?? row.postsynapticNPE),
+    weight: toNumberValue(row.Weight ?? row.weight, 0),
+    alpha: toNumberValue(row.alpha, 0),
+    beta: toNumberValue(row.beta, 0),
+    alphaPrime: toNumberValue(row.alpha_prime ?? row.alphaPrime, 0),
+    betaPrime: toNumberValue(row.beta_prime ?? row.betaPrime, 0),
+  }));
+}
+
+function parseTrials(value: unknown): Record<string, string[]> {
+  return Object.fromEntries(
+    Object.entries(asRecord(value)).map(([name, timesteps]) => [name, toStringArray(timesteps)]),
+  );
+}
+
+function parseLockedLayout(value: unknown): Record<string, { x: number; y: number }> | null {
+  if (!isRecord(value)) return null;
+  const entries = Object.entries(value).flatMap(([name, rawPosition]) => {
+    if (!isRecord(rawPosition)) return [];
+    const x = toNumberValue(rawPosition.x, Number.NaN);
+    const y = toNumberValue(rawPosition.y, Number.NaN);
+    return Number.isFinite(x) && Number.isFinite(y) ? [[name, { x, y }] as const] : [];
+  });
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
+}
+
+
+
+
+
 interface SimStore {
   // Model configuration
+  modelKind: ModelKind;
+
   npes: NPE[];
   connections: Connection[];
   trials: Record<string, string[]>;
@@ -20,6 +158,7 @@ interface SimStore {
   // Simulation state
   simulationResults: SimulationResult[][] | null;
   simulationMetadata: SimulationMetadata | null;
+  simulationInspector: SimulationInspector | null;
   simStatus: SimStatus;
   simError: string | null;
   numNetworks: number;
@@ -45,6 +184,9 @@ interface SimStore {
 
   // Actions
   setNPEs: (npes: NPE[]) => void;
+  setModelKind: (model: ModelKind) => void;
+
+
   addNPE: (npe: NPE) => void;
   removeNPE: (name: string) => void;
   setConnections: (connections: Connection[]) => void;
@@ -56,7 +198,7 @@ interface SimStore {
   setContingencies: (contingencies: string[]) => void;
   setHasITI: (hasITI: boolean[]) => void;
   setPhases: (phases: Phase[]) => void;
-  setSimResults: (results: SimulationResult[][], metadata: SimulationMetadata) => void;
+  setSimResults: (results: SimulationResult[][], metadata: SimulationMetadata, inspector?: SimulationInspector | null) => void;
   setSimStatus: (status: SimStatus) => void;
   setSimError: (error: string | null) => void;
   setNumNetworks: (n: number) => void;
@@ -70,12 +212,14 @@ interface SimStore {
   setIsPlaying: (p: boolean) => void;
   setPlaybackSpeed: (s: number) => void;
   setLockedLayout: (layout: Record<string, { x: number; y: number }> | null) => void;
-  loadTemplate: (data: any) => void;
-  loadExperiment: (data: any) => void;
+  loadTemplate: (data: unknown) => void;
+  loadExperiment: (data: unknown) => void;
   reset: () => void;
 }
 
 const initialState = {
+  modelKind: 'dtd' as ModelKind,
+
   npes: [],
   connections: [],
   trials: {},
@@ -84,11 +228,12 @@ const initialState = {
   phases: [],
   simulationResults: null,
   simulationMetadata: null,
+  simulationInspector: null,
   simStatus: 'idle' as SimStatus,
   simError: null,
   numNetworks: 5,
   thresholdPreset: 'gaussian_ddmui' as ThresholdPreset,
-  disc: 0.001,
+  disc: 0.0015,
   pupdate: 'async_random',
   appMode: 'beginner' as AppMode,
   selectedTemplate: null,
@@ -104,27 +249,33 @@ export const useSimStore = create<SimStore>((set, get) => ({
 
   getThresholdType: () => THRESHOLD_CONFIGS[get().thresholdPreset].threshold,
 
-  setNPEs: (npes) => set({ npes }),
-  addNPE: (npe) => set((s) => ({ npes: [...s.npes, npe] })),
+  setModelKind: (modelKind) => set({ modelKind, simulationInspector: null }),
+
+
+  setNPEs: (npes) => set({ npes, simulationInspector: null }),
+  addNPE: (npe) => set((s) => ({ npes: [...s.npes, npe], simulationInspector: null })),
   removeNPE: (name) => set((s) => ({
+    simulationInspector: null,
     npes: s.npes.filter((n) => n.name !== name),
     connections: s.connections.filter((c) => c.presynapticNPE !== name && c.postsynapticNPE !== name),
   })),
-  setConnections: (connections) => set({ connections }),
-  addConnection: (connection) => set((s) => ({ connections: [...s.connections, connection] })),
+  setConnections: (connections) => set({ connections, simulationInspector: null }),
+  addConnection: (connection) => set((s) => ({ connections: [...s.connections, connection], simulationInspector: null })),
   removeConnection: (pre, post) => set((s) => ({
+    simulationInspector: null,
     connections: s.connections.filter((c) => !(c.presynapticNPE === pre && c.postsynapticNPE === post)),
   })),
-  setTrials: (trials) => set({ trials }),
-  addTrial: (name, timesteps) => set((s) => ({ trials: { ...s.trials, [name]: timesteps } })),
+  setTrials: (trials) => set({ trials, simulationInspector: null }),
+  addTrial: (name, timesteps) => set((s) => ({ trials: { ...s.trials, [name]: timesteps }, simulationInspector: null })),
   removeTrial: (name) => set((s) => {
-    const { [name]: _, ...rest } = s.trials;
-    return { trials: rest };
+    const trials = { ...s.trials };
+    delete trials[name];
+    return { trials, simulationInspector: null };
   }),
-  setContingencies: (contingencies) => set({ contingencies }),
-  setHasITI: (hasITI) => set({ hasITI }),
-  setPhases: (phases) => set({ phases }),
-  setSimResults: (results, metadata) => set({ simulationResults: results, simulationMetadata: metadata, simStatus: 'complete' }),
+  setContingencies: (contingencies) => set({ contingencies, simulationInspector: null }),
+  setHasITI: (hasITI) => set({ hasITI, simulationInspector: null }),
+  setPhases: (phases) => set({ phases, simulationInspector: null }),
+  setSimResults: (results, metadata, inspector = null) => set({ simulationResults: results, simulationMetadata: metadata, simulationInspector: inspector, simStatus: 'complete' }),
   setSimStatus: (simStatus) => set({ simStatus }),
   setSimError: (simError) => set({ simError, simStatus: simError ? 'error' : 'idle' }),
   setNumNetworks: (numNetworks) => set({ numNetworks }),
@@ -132,11 +283,12 @@ export const useSimStore = create<SimStore>((set, get) => ({
     const { mu, sigma } = THRESHOLD_CONFIGS[thresholdPreset];
     return {
       thresholdPreset,
+      simulationInspector: null,
       npes: s.npes.map((npe) => ({ ...npe, mu, sigma })),
     };
   }),
-  setDisc: (disc) => set({ disc }),
-  setPupdate: (pupdate) => set({ pupdate }),
+  setDisc: (disc) => set({ disc, simulationInspector: null }),
+  setPupdate: (pupdate) => set({ pupdate, simulationInspector: null }),
   setAppMode: (appMode) => set({ appMode }),
   setSelectedTemplate: (selectedTemplate) => set({ selectedTemplate }),
   setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
@@ -145,60 +297,20 @@ export const useSimStore = create<SimStore>((set, get) => ({
   setPlaybackSpeed: (playbackSpeed) => set({ playbackSpeed }),
   setLockedLayout: (lockedLayout) => set({ lockedLayout }),
 
-  loadTemplate: (data: any) => {
+  loadTemplate: (payload) => {
     // R plumber can return dataframes in two formats:
     // 1. Array of row-objects: [{ NPE: "US", Type: "Excitatory", ... }, ...]
     // 2. Column-arrays (named list): { NPE: ["US", "D"], Type: ["Excitatory", "Excitatory"], ... }
     // We handle both formats.
-
-    const unbox = (v: any) => Array.isArray(v) ? v[0] : v;
-
-    // Helper: convert column-arrays format to row-objects format
-    const columnsToRows = (obj: any): any[] => {
-      if (Array.isArray(obj)) return obj; // Already row-objects
-      const keys = Object.keys(obj);
-      if (keys.length === 0) return [];
-      const firstVal = obj[keys[0]];
-      if (!Array.isArray(firstVal)) return [obj]; // Single row wrapped in object
-      const len = firstVal.length;
-      const rows: any[] = [];
-      for (let i = 0; i < len; i++) {
-        const row: any = {};
-        for (const key of keys) {
-          row[key] = Array.isArray(obj[key]) ? obj[key][i] : obj[key];
-        }
-        rows.push(row);
-      }
-      return rows;
-    };
-
-    const rawNpes = columnsToRows(data.npes || []);
-    const npes: NPE[] = rawNpes.map((row: any) => ({
-      name: row.NPE,
-      type: row.Type as NPE['type'],
-      layer: row.Layer as NPE['layer'],
-      activation: Number(row.Activation),
-      temporalSummation: Number(row['Temporal.Summation']),
-      activationDecay: Number(row['Activation.Decay']),
-      mu: Number(row.mu),
-      sigma: Number(row.sigma),
-      logisSigma: Number(row.logisSigma),
-    }));
-
-    const rawConns = columnsToRows(data.connections || []);
-    const connections: Connection[] = rawConns.map((row: any) => ({
-      presynapticNPE: row.PreSinapticNPE,
-      postsynapticNPE: row.PostSinapticNPE,
-      weight: Number(row.Weight),
-      alpha: Number(row.alpha),
-      beta: Number(row.beta),
-      alphaPrime: Number(row.alpha_prime),
-      betaPrime: Number(row.beta_prime),
-    }));
-
-    const templateId = unbox(data.id);
-    const contingencies = data.contingencies || [];
-    const hasITI = data.hasITI || contingencies.map(() => false);
+    assertDDMPayload(payload);
+    const data = asRecord(payload);
+    const npes = parseNPEs(data.npes);
+    const connections = parseConnections(data.connections);
+    const templateId = toStringValue(data.id) || null;
+    const modelKind: ModelKind = 'dtd';
+    const contingencies = toStringArray(data.contingencies);
+    const parsedHasITI = toBooleanArray(data.hasITI);
+    const hasITI = parsedHasITI.length > 0 ? parsedHasITI : contingencies.map(() => false);
 
     // Auto-detect threshold preset from NPE mu/sigma values
     const firstMu = npes.length > 0 ? npes[0].mu : 0.2;
@@ -208,11 +320,14 @@ export const useSimStore = create<SimStore>((set, get) => ({
 
     set({
       npes,
+      modelKind,
+
       connections,
-      trials: data.trials,
+      trials: parseTrials(data.trials),
       contingencies,
       hasITI,
       selectedTemplate: templateId,
+      simulationInspector: null,
       thresholdPreset: detectedPreset,
       simulationResults: null,
       simulationMetadata: null,
@@ -221,13 +336,15 @@ export const useSimStore = create<SimStore>((set, get) => ({
     });
   },
 
-  loadExperiment: (data: any) => {
+  loadExperiment: (payload) => {
+    assertDDMPayload(payload);
+    const data = asRecord(payload);
     // Backward compatibility: convert old separate threshold+thresholdPreset to unified format
-    const rawPreset: string = data.thresholdPreset || 'gaussian_ddmui';
+    const rawPreset = toStringValue(data.thresholdPreset, 'gaussian_ddmui');
     let preset: ThresholdPreset;
     if (rawPreset === 'ddm-ui' || rawPreset === 'donahoe1993') {
       // Old format: 'ddm-ui' / 'donahoe1993' were separate from threshold type
-      const oldThreshold = data.threshold || 'gaussian';
+      const oldThreshold = toStringValue(data.threshold, 'gaussian');
       if (rawPreset === 'donahoe1993') {
         preset = 'gaussian_donahoe1993';
       } else if (oldThreshold === 'beta') {
@@ -244,17 +361,20 @@ export const useSimStore = create<SimStore>((set, get) => ({
 
     // Load from a saved experiment JSON file (already in frontend format)
     set({
-      npes: data.npes || [],
-      connections: data.connections || [],
-      trials: data.trials || {},
-      contingencies: data.contingencies || [],
-      hasITI: data.hasITI || [],
-      numNetworks: data.numNetworks || 5,
+      npes: parseNPEs(data.npes),
+      modelKind: 'dtd',
+
+      connections: parseConnections(data.connections),
+      trials: parseTrials(data.trials),
+      contingencies: toStringArray(data.contingencies),
+      hasITI: toBooleanArray(data.hasITI),
+      numNetworks: Math.max(1, Math.floor(toNumberValue(data.numNetworks, 5))),
       thresholdPreset: preset,
-      disc: data.disc || 0.001,
-      pupdate: data.pupdate || 'async_random',
-      lockedLayout: data.lockedLayout || null,
+      disc: toNumberValue(data.disc, 0.0015),
+      pupdate: toStringValue(data.pupdate, 'async_random'),
+      lockedLayout: parseLockedLayout(data.lockedLayout),
       selectedTemplate: null,
+      simulationInspector: null,
       simulationResults: null,
       simulationMetadata: null,
       simStatus: 'idle',

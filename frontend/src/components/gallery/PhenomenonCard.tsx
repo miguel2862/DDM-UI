@@ -4,11 +4,12 @@ import {
   Flame, ShieldOff, Eclipse, ShieldAlert, RotateCcw, Timer, Lock,
   Scale, Layers, ArrowRightLeft, Loader2, Zap, EyeOff,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { useI18n } from '../../i18n';
 import type { Phenomenon } from '../../data/phenomena';
 
-const iconMap: Record<string, React.ComponentType<any>> = {
+const iconMap: Record<string, LucideIcon> = {
   Flame, ShieldOff, Eclipse, ShieldAlert, RotateCcw, Timer, Scale, Layers, ArrowRightLeft, Zap, EyeOff,
 };
 
@@ -86,6 +87,7 @@ export function PhenomenonCard({ phenomenon, onLoad, delay = 0, isLoading = fals
   const translated = translationKey ? t.phenomena[translationKey] : null;
   const displayName = translated ? translated.name : phenomenon.name;
   const displayDescription = translated ? translated.description : phenomenon.description;
+  const displayPhases = translated && 'phases' in translated ? translated.phases : phenomenon.phases;
 
   const handleMouseEnter = useCallback(() => {
     hoverTimerRef.current = setTimeout(() => {
@@ -148,7 +150,7 @@ export function PhenomenonCard({ phenomenon, onLoad, delay = 0, isLoading = fals
 
         {/* Phases */}
         <div className="mt-3 px-3 py-2 rounded-lg bg-slate-50 text-xs text-slate-500 font-mono border border-slate-100">
-          {phenomenon.phases}
+          {displayPhases}
         </div>
 
         {/* Load overlay */}

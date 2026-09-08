@@ -1,7 +1,13 @@
-import type { NPE, Connection } from '../types/ddm';
+import { assertDDMPayload } from './ddmCompatibility';
+import type {
+  NPE,
+  Connection,
+  ModelKind,
+  SimulationResult,
+} from '../types/ddm';
 
 // Download simulation results as CSV for a single network
-export function downloadResultsCSV(results: any[], filename = 'ddm-results.csv') {
+export function downloadResultsCSV(results: SimulationResult[], filename = 'ddm-results.csv') {
   if (!results || results.length === 0) return;
 
   // Get all column names from first row
@@ -29,7 +35,7 @@ export function downloadResultsCSV(results: any[], filename = 'ddm-results.csv')
 }
 
 // Download ALL networks combined into a single CSV (with a Network column)
-export function downloadAllNetworksCSV(allResults: any[][], filename = 'ddm-results-all-networks.csv') {
+export function downloadAllNetworksCSV(allResults: SimulationResult[][], filename = 'ddm-results-all-networks.csv') {
   if (!allResults || allResults.length === 0) return;
 
   const firstRow = allResults[0]?.[0];
@@ -70,10 +76,16 @@ export function downloadArchitectureJSON(
   contingencies: string[],
   hasITI: boolean[],
   filename = 'ddm-experiment.json',
-  simParams?: { numNetworks?: number; thresholdPreset?: string; disc?: number; pupdate?: string },
+  simParams?: {
+    numNetworks?: number;
+    thresholdPreset?: string;
+    disc?: number;
+    pupdate?: string;
+    modelKind?: ModelKind;
+  },
   lockedLayout?: Record<string, { x: number; y: number }> | null
 ) {
-  const data: Record<string, any> = {
+  const data: Record<string, unknown> = {
     _type: 'ddm-ui-experiment',
     _version: '3.0',
     exportedAt: new Date().toISOString(),
@@ -90,6 +102,7 @@ export function downloadArchitectureJSON(
     if (simParams.thresholdPreset !== undefined) data.thresholdPreset = simParams.thresholdPreset;
     if (simParams.disc !== undefined) data.disc = simParams.disc;
     if (simParams.pupdate !== undefined) data.pupdate = simParams.pupdate;
+    if (simParams.modelKind !== undefined) data.modelKind = simParams.modelKind;
   }
 
   // Include locked layout if available
@@ -108,26 +121,41 @@ export function downloadArchitectureJSON(
 }
 
 // Valid NPE layers and types for validation
-const VALID_LAYERS = ['US', 'PrimarySensory', 'AssociativeSensory', 'Hippocampal', 'AssociativeMotor', 'PrimaryMotor', 'Dopaminergic'];
+const VALID_LAYERS = [
+  'US', 'PrimarySensory', 'AssociativeSensory', 'Hippocampal', 'AssociativeMotor', 'PrimaryMotor', 'Dopaminergic',
+];
 const VALID_NPE_TYPES = ['Excitatory', 'Inhibitory'];
 
 // Deep validation for imported experiment files
-function validateExperimentData(data: any): string | null {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function validateExperimentData(data: unknown): string | null {
+  if (!isRecord(data)) return 'Experiment file must contain a JSON object';
+  try { assertDDMPayload(data); } catch (error) { return error instanceof Error ? error.message : 'Not a DDM experiment'; }
+
   // Validate NPEs array
   if (!Array.isArray(data.npes) || data.npes.length === 0) {
     return 'File must contain at least one NPE';
   }
   for (let i = 0; i < data.npes.length; i++) {
     const npe = data.npes[i];
+    if (!isRecord(npe)) return `NPE at index ${i} must be an object`;
     if (!npe.name || typeof npe.name !== 'string') return `NPE at index ${i} is missing a valid name`;
-    if (!VALID_NPE_TYPES.includes(npe.type)) return `NPE "${npe.name}" has invalid type "${npe.type}"`;
-    if (!VALID_LAYERS.includes(npe.layer)) return `NPE "${npe.name}" has invalid layer "${npe.layer}"`;
+    if (typeof npe.type !== 'string' || !VALID_NPE_TYPES.includes(npe.type)) {
+      return `NPE "${npe.name}" has invalid type "${String(npe.type)}"`;
+    }
+    if (typeof npe.layer !== 'string' || !VALID_LAYERS.includes(npe.layer)) {
+      return `NPE "${npe.name}" has invalid layer "${String(npe.layer)}"`;
+    }
     if (typeof npe.mu !== 'number' || typeof npe.sigma !== 'number') return `NPE "${npe.name}" is missing mu/sigma values`;
   }
 
   // Check for duplicate NPE names
   const npeNames = new Set<string>();
   for (const npe of data.npes) {
+    if (!isRecord(npe) || typeof npe.name !== 'string') continue;
     if (npeNames.has(npe.name)) return `Duplicate NPE name: "${npe.name}"`;
     npeNames.add(npe.name);
   }
@@ -136,14 +164,17 @@ function validateExperimentData(data: any): string | null {
   if (!Array.isArray(data.connections)) return 'Connections must be an array';
   for (let i = 0; i < data.connections.length; i++) {
     const conn = data.connections[i];
-    if (!conn.presynapticNPE || !conn.postsynapticNPE) return `Connection at index ${i} is missing source or target`;
+    if (!isRecord(conn)) return `Connection at index ${i} must be an object`;
+    if (typeof conn.presynapticNPE !== 'string' || typeof conn.postsynapticNPE !== 'string') {
+      return `Connection at index ${i} is missing source or target`;
+    }
     if (!npeNames.has(conn.presynapticNPE)) return `Connection references unknown NPE "${conn.presynapticNPE}"`;
     if (!npeNames.has(conn.postsynapticNPE)) return `Connection references unknown NPE "${conn.postsynapticNPE}"`;
     if (typeof conn.weight !== 'number') return `Connection ${conn.presynapticNPE}→${conn.postsynapticNPE} has invalid weight`;
   }
 
   // Validate trials (optional but if present must be valid)
-  if (data.trials && typeof data.trials === 'object' && !Array.isArray(data.trials)) {
+  if (data.trials && isRecord(data.trials)) {
     for (const [name, timesteps] of Object.entries(data.trials)) {
       if (!Array.isArray(timesteps)) return `Trial "${name}" has invalid timesteps (expected array)`;
     }
@@ -169,11 +200,15 @@ export function parseArchitectureJSON(jsonString: string): {
   thresholdPreset?: string;
   disc?: number;
   pupdate?: string;
+  modelKind?: ModelKind;
   lockedLayout?: Record<string, { x: number; y: number }>;
   validationError?: string;
 } | null {
   try {
-    const data = JSON.parse(jsonString);
+    const data: unknown = JSON.parse(jsonString);
+    if (!isRecord(data)) {
+      throw new Error('Invalid experiment/architecture file: expected a JSON object');
+    }
     if (!data.npes || !data.connections) {
       throw new Error('Invalid experiment/architecture file: missing npes or connections');
     }
@@ -192,16 +227,19 @@ export function parseArchitectureJSON(jsonString: string): {
     }
 
     return {
-      npes: data.npes,
-      connections: data.connections,
-      trials: data.trials || {},
-      contingencies: data.contingencies || [],
-      hasITI: data.hasITI || [],
-      numNetworks: data.numNetworks,
-      thresholdPreset: data.thresholdPreset,
-      disc: data.disc,
-      pupdate: data.pupdate,
-      lockedLayout: data.lockedLayout || undefined,
+      npes: data.npes as NPE[],
+      connections: data.connections as Connection[],
+      trials: isRecord(data.trials) ? data.trials as Record<string, string[]> : {},
+      contingencies: Array.isArray(data.contingencies) ? data.contingencies as string[] : [],
+      hasITI: Array.isArray(data.hasITI) ? data.hasITI as boolean[] : [],
+      numNetworks: typeof data.numNetworks === 'number' ? data.numNetworks : undefined,
+      thresholdPreset: typeof data.thresholdPreset === 'string' ? data.thresholdPreset : undefined,
+      disc: typeof data.disc === 'number' ? data.disc : undefined,
+      pupdate: typeof data.pupdate === 'string' ? data.pupdate : undefined,
+      modelKind: 'dtd',
+      lockedLayout: isRecord(data.lockedLayout)
+        ? data.lockedLayout as Record<string, { x: number; y: number }>
+        : undefined,
     };
   } catch (err) {
     console.error('Failed to parse file:', err);

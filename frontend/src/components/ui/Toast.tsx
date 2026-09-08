@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef, createContext, useContext, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import { useI18n } from '../../i18n';
+import { onConnectionChange } from '../../api/client';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -57,6 +58,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// The provider and its hook intentionally form one colocated context API.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
   if (!ctx) throw new Error('useToast must be used within ToastProvider');
@@ -117,31 +120,18 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
 
 // ── Connection Status Monitor (optional auto-toast for connection changes) ──
 export function ConnectionMonitor() {
-  const toast = useToast();
+  const { success, warning } = useToast();
   const { t } = useI18n();
-  const cancelledRef = useRef(false);
-  const unsubRef = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
-    cancelledRef.current = false;
-
-    (async () => {
-      const { onConnectionChange } = await import('../../api/client');
-      if (cancelledRef.current) return; // component unmounted during import
-      unsubRef.current = onConnectionChange((connected) => {
-        if (connected) {
-          toast.success(t.toast.connectionRestored);
-        } else {
-          toast.warning(t.toast.connectionLost);
-        }
-      });
-    })();
-
-    return () => {
-      cancelledRef.current = true;
-      unsubRef.current?.();
-    };
-  }, [toast, t]);
+    return onConnectionChange((connected) => {
+      if (connected) {
+        success(t.toast.connectionRestored);
+      } else {
+        warning(t.toast.connectionLost);
+      }
+    });
+  }, [success, warning, t]);
 
   return null;
 }

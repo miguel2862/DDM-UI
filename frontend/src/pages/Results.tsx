@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer, ErrorBar, ReferenceLine, ComposedChart,
@@ -16,6 +16,36 @@ import { useToast } from '../components/ui/Toast';
 import { downloadResultsCSV, downloadAllNetworksCSV } from '../utils/dataExport';
 import { getDisplayName } from '../utils/displayNames';
 import { useI18n } from '../i18n';
+import type { SimulationResult } from '../types/ddm';
+
+type ChartType = 'activations' | 'weights' | 'aggregate' | 'signals';
+
+interface ChartDataPoint extends Record<string, string | number> {
+  trial: number;
+  phase: string;
+  phaseTrial: string | number;
+}
+
+interface TooltipEntry {
+  color?: string;
+  name?: string | number;
+  value?: string | number;
+  payload?: ChartDataPoint;
+}
+
+interface CustomChartTooltipProps {
+  active?: boolean;
+  payload?: readonly TooltipEntry[];
+}
+
+interface ItalicUnitTickProps {
+  x?: number;
+  y?: number;
+  payload?: { value?: string | number };
+}
+
+const EMPTY_STRINGS: string[] = [];
+const DTD_SIGNAL_NAMES = ['dVTA', 'dH'];
 
 const COLORS = [
   '#06b6d4', '#14b8a6', '#f59e0b', '#8b5cf6', '#ef4444',
@@ -28,7 +58,7 @@ const SCATTER_COLORS = [
 ];
 
 // Custom tooltip that shows Phase and Trial info
-function CustomChartTooltip({ active, payload }: any) {
+function CustomChartTooltip({ active, payload }: CustomChartTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   const data = payload[0]?.payload;
   return (
@@ -44,7 +74,7 @@ function CustomChartTooltip({ active, payload }: any) {
       <p style={{ fontWeight: 700, marginBottom: 4, color: '#64748b' }}>
         {data?.phase} — Trial {data?.phaseTrial}
       </p>
-      {payload.map((entry: any, i: number) => (
+      {payload.map((entry, i) => (
         <p key={i} style={{ color: entry.color, margin: '2px 0' }}>
           {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(4) : entry.value}
         </p>
@@ -54,8 +84,8 @@ function CustomChartTooltip({ active, payload }: any) {
 }
 
 // Custom XAxis tick that renders unit names in italic with proper display names
-function ItalicUnitTick({ x, y, payload }: any) {
-  const displayName = getDisplayName(payload.value);
+function ItalicUnitTick({ x = 0, y = 0, payload }: ItalicUnitTickProps) {
+  const displayName = getDisplayName(String(payload?.value ?? ''));
   return (
     <text x={x} y={y} dy={14} textAnchor="middle" fill="#64748b" fontSize={11} fontStyle="italic">
       {displayName}
@@ -68,7 +98,7 @@ function italicLegendFormatter(value: string) {
   return <span style={{ fontStyle: 'italic' }}>{value}</span>;
 }
 
-function computeBoundaries(data: any[]): { trial: number; phase: string }[] {
+function computeBoundaries(data: ChartDataPoint[]): { trial: number; phase: string }[] {
   const boundaries: { trial: number; phase: string }[] = [];
   let lastPhase = '';
   for (const point of data) {
@@ -80,34 +110,68 @@ function computeBoundaries(data: any[]): { trial: number; phase: string }[] {
   return boundaries;
 }
 
+function getDefaultSelection(units: string[]): string[] {
+  const motorUnits = units.filter(unit =>
+    /^M\.\d+$/.test(unit) || /^(M'|CR|R)\d*/.test(unit) || /^Motor_/.test(unit)
+  );
+  return motorUnits.length > 0 ? motorUnits : units.slice(0, 1);
+}
+
+function getDefaultSignalSelection(signalNames: string[]): string[] {
+  const preferred = (['dVTA', 'dH']);
+  const initial = preferred.filter(name => signalNames.includes(name));
+  return (initial.length > 0 ? initial : signalNames).slice(0, 5);
+}
+
+function resolvePhaseTimestep(
+  phase: string,
+  overrides: Record<string, number>,
+  availableTimesteps: Record<string, number[]>,
+): number {
+  if (overrides[phase] !== undefined) return overrides[phase];
+  const available = availableTimesteps[phase];
+  if (available && available.length > 1) return available[available.length - 2];
+  if (available && available.length === 1) return available[0];
+  return 1;
+}
+
+function filterByPhaseTimestep(
+  data: SimulationResult[],
+  overrides: Record<string, number>,
+  availableTimesteps: Record<string, number[]>,
+): SimulationResult[] {
+  return data.filter(row => {
+    const phase = String(row.Phase);
+    return Number(row.TimeStep) === resolvePhaseTimestep(phase, overrides, availableTimesteps);
+  });
+}
+
 export function Results() {
   const { simulationResults, simulationMetadata, selectedNetwork, setSelectedNetwork } = useSimStore();
   const { t } = useI18n();
   const toast = useToast();
 
   const [tab, setTab] = useState<'individual' | 'general'>('individual');
-  const [chartType, setChartType] = useState<'activations' | 'weights' | 'aggregate' | 'signals'>('activations');
-  const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
-  const [selectedConns, setSelectedConns] = useState<string[]>([]);
-  const [selectedPhase, setSelectedPhase] = useState<string>('');
+  const [chartType, setChartType] = useState<ChartType>('activations');
+  const [unitSelection, setUnitSelection] = useState<string[] | null>(null);
+  const [connectionSelection, setConnectionSelection] = useState<string[] | null>(null);
+  const [signalSelection, setSignalSelection] = useState<string[] | null>(null);
+  const [phaseSelection, setPhaseSelection] = useState<string | null>(null);
   // Per-phase timestep selection: { "training": 5, "extinction": 5 }
-  const [phaseTimesteps, setPhaseTimesteps] = useState<Record<string, number>>({});
+  const [phaseTimestepOverrides, setPhaseTimestepOverrides] = useState<Record<string, number>>({});
   const [aggregateMeasure, setAggregateMeasure] = useState<'mean' | 'median'>('mean');
   const [figureNumber, setFigureNumber] = useState(1);
 
   const chartRef = useRef<HTMLDivElement>(null);
   const exportWrapperRef = useRef<HTMLDivElement>(null);
 
-  const units = simulationMetadata?.units || [];
-  const connNames = simulationMetadata?.connections || [];
-  const phases = simulationMetadata?.phases || [];
-
-  // Guard: clamp selectedNetwork if it exceeds available results
-  useEffect(() => {
-    if (simulationResults && selectedNetwork >= simulationResults.length) {
-      setSelectedNetwork(0);
-    }
-  }, [simulationResults, selectedNetwork, setSelectedNetwork]);
+  const units = simulationMetadata?.units ?? EMPTY_STRINGS;
+  const connNames = simulationMetadata?.connections ?? EMPTY_STRINGS;
+  const phases = simulationMetadata?.phases ?? EMPTY_STRINGS;
+  const signalNames = simulationMetadata?.signals ?? DTD_SIGNAL_NAMES;
+  const effectiveSelectedNetwork = simulationResults && selectedNetwork < simulationResults.length
+    ? selectedNetwork
+    : 0;
 
   // Compute available timesteps PER PHASE from actual simulation data
   const phaseAvailableTimesteps = useMemo(() => {
@@ -116,7 +180,7 @@ export function Results() {
     const firstNet = simulationResults[0];
     if (!firstNet || firstNet.length === 0) return result;
 
-    firstNet.forEach((row: any) => {
+    firstNet.forEach(row => {
       const phase = String(row.Phase);
       const ts = Number(row.TimeStep);
       if (!result[phase]) result[phase] = [];
@@ -130,53 +194,49 @@ export function Results() {
     return result;
   }, [simulationResults]);
 
-  // Initialize selections — default to PrimaryMotor (output unit) only
-  useEffect(() => {
-    if (units.length > 0 && selectedUnits.length === 0) {
-      const motorUnits = units.filter((u: string) => /^M\.\d+$/.test(u) || /^(M'|CR|R)\d*/.test(u));
-      setSelectedUnits(motorUnits.length > 0 ? motorUnits : [units[0]]);
-    }
-    if (connNames.length > 0 && selectedConns.length === 0) {
-      setSelectedConns(connNames.slice(0, 3));
-    }
-    if (phases.length > 0 && !selectedPhase) {
-      setSelectedPhase(phases[0]);
-    }
-  }, [units, connNames, phases]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Defaults are derived from metadata. A non-null selection, including [], is an
+  // explicit user choice and therefore remains stable after "deselect all".
+  const defaultSelectedUnits = useMemo(() => getDefaultSelection(units), [units]);
+  const defaultSelectedConns = useMemo(() => connNames.slice(0, 3), [connNames]);
+  const defaultSelectedSignals = useMemo(
+    () => getDefaultSignalSelection(signalNames),
+    [signalNames],
+  );
+  const selectedUnits = unitSelection ?? defaultSelectedUnits;
+  const selectedConns = connectionSelection ?? defaultSelectedConns;
+  const selectedSignals = signalSelection ?? defaultSelectedSignals;
+  const selectedPhase = phaseSelection ?? phases[0] ?? '';
 
-  // Auto-set per-phase timesteps to second-to-last when data first loads (matching original R behavior)
-  useEffect(() => {
-    if (Object.keys(phaseAvailableTimesteps).length > 0 && Object.keys(phaseTimesteps).length === 0) {
-      const defaults: Record<string, number> = {};
-      for (const [phase, tsList] of Object.entries(phaseAvailableTimesteps)) {
-        if (tsList.length > 1) {
-          defaults[phase] = tsList[tsList.length - 2] || tsList[tsList.length - 1];
-        } else if (tsList.length === 1) {
-          defaults[phase] = tsList[0];
-        }
-      }
-      setPhaseTimesteps(defaults);
-    }
-  }, [phaseAvailableTimesteps]); // eslint-disable-line react-hooks/exhaustive-deps
+  const setSelectedUnits = (next: string[] | ((previous: string[]) => string[])) => {
+    setUnitSelection(previous => typeof next === 'function'
+      ? next(previous ?? defaultSelectedUnits)
+      : next);
+  };
+  const setSelectedConns = (next: string[] | ((previous: string[]) => string[])) => {
+    setConnectionSelection(previous => typeof next === 'function'
+      ? next(previous ?? defaultSelectedConns)
+      : next);
+  };
+  const setSelectedSignals = (next: string[] | ((previous: string[]) => string[])) => {
+    setSignalSelection(previous => typeof next === 'function'
+      ? next(previous ?? defaultSelectedSignals)
+      : next);
+  };
 
   // Helper: get the timestep for a given phase
   const getPhaseTimestep = (phase: string): number => {
-    if (phaseTimesteps[phase] !== undefined) return phaseTimesteps[phase];
-    const avail = phaseAvailableTimesteps[phase];
-    if (avail && avail.length > 1) return avail[avail.length - 2];
-    if (avail && avail.length === 1) return avail[0];
-    return 1;
+    return resolvePhaseTimestep(phase, phaseTimestepOverrides, phaseAvailableTimesteps);
   };
 
   // Update a single phase's timestep
   const setPhaseTimestep = (phase: string, ts: number) => {
-    setPhaseTimesteps(prev => ({ ...prev, [phase]: ts }));
+    setPhaseTimestepOverrides(previous => ({ ...previous, [phase]: ts }));
   };
 
   // Export chart as APA 7 compliant PNG (publication-ready)
   // Strategy: inject APA header/footer into the live exportWrapper (parent of chart),
   // lock wrapper to fixed pixel width so toPng captures everything, then clean up.
-  const handleExportChartPNG = useCallback(async () => {
+  const handleExportChartPNG = async () => {
     if (!exportWrapperRef.current || !chartRef.current) return;
     try {
       // Build localized figure title
@@ -216,7 +276,7 @@ export function Results() {
       const timestepInfo = phases.map(p => `${p}: t=${getPhaseTimestep(p)}`).join(', ');
       const networkInfo = tab === 'individual'
         ? t.results.figNetworkIndividual
-            .replace('{current}', String(selectedNetwork + 1))
+            .replace('{current}', String(effectiveSelectedNetwork + 1))
             .replace('{total}', String(simulationResults?.length || 1))
         : t.results.figNetworkGeneral
             .replace('{total}', String(simulationResults?.length || 1))
@@ -304,20 +364,20 @@ export function Results() {
       console.error('Failed to export chart PNG:', err);
       toast.error(t.toast.exportPNGError || 'Failed to export chart as PNG. Please try again.');
     }
-  }, [chartType, tab, aggregateMeasure, selectedPhase, phases, phaseTimesteps, selectedNetwork, simulationResults, figureNumber]);
+  };
 
   // Get the single-network data array to plot (for line charts)
-  const plotData = useMemo((): any[] | null => {
+  const plotData = useMemo((): SimulationResult[] | null => {
     if (!simulationResults || simulationResults.length === 0) return null;
     if (tab === 'individual') {
-      return simulationResults[selectedNetwork] || null;
+      return simulationResults[effectiveSelectedNetwork] || null;
     }
     // For general: compute mean/median across all networks
     const firstNet = simulationResults[0];
     if (!firstNet || firstNet.length === 0) return null;
 
-    return firstNet.map((refRow: any, rowIdx: number) => {
-      const result: any = {
+    return firstNet.map((refRow, rowIdx): SimulationResult => {
+      const result: SimulationResult = {
         Phase: refRow.Phase,
         Trial: refRow.Trial,
         TimeStep: refRow.TimeStep,
@@ -338,23 +398,14 @@ export function Results() {
       }
       return result;
     });
-  }, [simulationResults, tab, selectedNetwork, aggregateMeasure]);
-
-  // Filter data using per-phase timestep: each row is kept if its TimeStep matches the selected timestep for its Phase
-  const filterByPhaseTimestep = (data: any[]): any[] => {
-    return data.filter((row: any) => {
-      const phase = String(row.Phase);
-      const ts = Number(row.TimeStep);
-      return ts === getPhaseTimestep(phase);
-    });
-  };
+  }, [simulationResults, tab, effectiveSelectedNetwork, aggregateMeasure]);
 
   // Activation line chart data -- use a global trial index so phase boundaries are visible
   const activationData = useMemo(() => {
     if (!plotData) return [];
-    const filtered = filterByPhaseTimestep(plotData);
-    return filtered.map((row: any, idx: number) => {
-      const point: any = {
+    const filtered = filterByPhaseTimestep(plotData, phaseTimestepOverrides, phaseAvailableTimesteps);
+    return filtered.map((row, idx): ChartDataPoint => {
+      const point: ChartDataPoint = {
         trial: idx + 1,
         phase: row.Phase,
         phaseTrial: row.Trial,
@@ -364,14 +415,14 @@ export function Results() {
       });
       return point;
     });
-  }, [plotData, phaseTimesteps, selectedUnits]);
+  }, [plotData, phaseTimestepOverrides, phaseAvailableTimesteps, selectedUnits]);
 
   // Weight line chart data -- use a global trial index
   const weightData = useMemo(() => {
     if (!plotData) return [];
-    const filtered = filterByPhaseTimestep(plotData);
-    return filtered.map((row: any, idx: number) => {
-      const point: any = {
+    const filtered = filterByPhaseTimestep(plotData, phaseTimestepOverrides, phaseAvailableTimesteps);
+    return filtered.map((row, idx): ChartDataPoint => {
+      const point: ChartDataPoint = {
         trial: idx + 1,
         phase: row.Phase,
         phaseTrial: row.Trial,
@@ -381,32 +432,40 @@ export function Results() {
       });
       return point;
     });
-  }, [plotData, phaseTimesteps, selectedConns]);
+  }, [plotData, phaseTimestepOverrides, phaseAvailableTimesteps, selectedConns]);
 
   // Learning signals data
   const signalData = useMemo(() => {
     if (!plotData) return [];
-    const filtered = filterByPhaseTimestep(plotData);
-    return filtered.map((row: any, idx: number) => ({
-      trial: idx + 1,
-      phase: row.Phase,
-      phaseTrial: row.Trial,
-      dVTA: typeof row.dVTA === 'number' ? Number(row.dVTA.toFixed(6)) : 0,
-      dH: typeof row.dH === 'number' ? Number(row.dH.toFixed(6)) : 0,
-    }));
-  }, [plotData, phaseTimesteps]);
+    const filtered = filterByPhaseTimestep(plotData, phaseTimestepOverrides, phaseAvailableTimesteps);
+    return filtered.map((row, idx): ChartDataPoint => {
+      const point: ChartDataPoint = {
+        trial: idx + 1,
+        phase: row.Phase,
+        phaseTrial: row.Trial,
+      };
+      selectedSignals.forEach(signal => {
+        point[signal] = typeof row[signal] === 'number' ? Number(row[signal].toFixed(6)) : 0;
+      });
+      return point;
+    });
+  }, [plotData, phaseTimestepOverrides, phaseAvailableTimesteps, selectedSignals]);
 
   // Aggregate bar chart data -- single network (used for individual tab)
   const aggregateDataSingle = useMemo(() => {
     if (!plotData || !selectedPhase) return [];
-    const selectedTs = getPhaseTimestep(selectedPhase);
+    const selectedTs = resolvePhaseTimestep(
+      selectedPhase,
+      phaseTimestepOverrides,
+      phaseAvailableTimesteps,
+    );
     const filtered = plotData.filter(
-      (row: any) => row.Phase === selectedPhase && Number(row.TimeStep) === selectedTs
+      row => row.Phase === selectedPhase && Number(row.TimeStep) === selectedTs
     );
     if (filtered.length === 0) return [];
 
     return selectedUnits.map(unit => {
-      const values = filtered.map((row: any) => typeof row[unit] === 'number' ? row[unit] : 0);
+      const values = filtered.map(row => typeof row[unit] === 'number' ? row[unit] as number : 0);
       const mean = values.reduce((a: number, b: number) => a + b, 0) / values.length;
       const sorted = [...values].sort((a, b) => a - b);
       const median = sorted[Math.floor(sorted.length / 2)];
@@ -420,12 +479,16 @@ export function Results() {
         sd: Number(sd.toFixed(4)),
       };
     });
-  }, [plotData, selectedPhase, phaseTimesteps, selectedUnits, aggregateMeasure]);
+  }, [plotData, selectedPhase, phaseTimestepOverrides, phaseAvailableTimesteps, selectedUnits, aggregateMeasure]);
 
   // Aggregate bar chart data -- general tab: across ALL networks
   const aggregateDataGeneral = useMemo(() => {
     if (!simulationResults || simulationResults.length === 0 || !selectedPhase) return [];
-    const selectedTs = getPhaseTimestep(selectedPhase);
+    const selectedTs = resolvePhaseTimestep(
+      selectedPhase,
+      phaseTimestepOverrides,
+      phaseAvailableTimesteps,
+    );
 
     const networkAggregates: { networkIdx: number; values: Record<string, number> }[] = [];
 
@@ -434,13 +497,13 @@ export function Results() {
       if (!netData) continue;
 
       const filtered = netData.filter(
-        (row: any) => row.Phase === selectedPhase && Number(row.TimeStep) === selectedTs
+        row => row.Phase === selectedPhase && Number(row.TimeStep) === selectedTs
       );
       if (filtered.length === 0) continue;
 
       const netValues: Record<string, number> = {};
       for (const unit of selectedUnits) {
-        const vals = filtered.map((row: any) => typeof row[unit] === 'number' ? row[unit] : 0);
+        const vals = filtered.map(row => typeof row[unit] === 'number' ? row[unit] as number : 0);
         const mean = vals.reduce((a: number, b: number) => a + b, 0) / vals.length;
         const sorted = [...vals].sort((a, b) => a - b);
         const median = sorted[Math.floor(sorted.length / 2)];
@@ -474,7 +537,7 @@ export function Results() {
         ...Object.fromEntries(perNetworkValues.map((v, i) => [`net${i}`, Number(v.toFixed(4))])),
       };
     });
-  }, [simulationResults, selectedPhase, phaseTimesteps, selectedUnits, aggregateMeasure]);
+  }, [simulationResults, selectedPhase, phaseTimestepOverrides, phaseAvailableTimesteps, selectedUnits, aggregateMeasure]);
 
   // Pick the right aggregate data based on the tab
   const aggregateData = tab === 'general' ? aggregateDataGeneral : aggregateDataSingle;
@@ -545,7 +608,7 @@ export function Results() {
             <Card className="p-4">
               <label className="block text-xs font-bold text-slate-500 mb-2">{t.results.networkLabel}</label>
               <select
-                value={selectedNetwork}
+                value={effectiveSelectedNetwork}
                 onChange={(e) => setSelectedNetwork(parseInt(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-800 text-sm focus:border-cyan-500/50 focus:outline-none"
               >
@@ -558,15 +621,15 @@ export function Results() {
 
           <Card className="p-4 space-y-3">
             <label className="block text-xs font-bold text-slate-500">{t.results.chartType}</label>
-            {[
+            {([
               { key: 'activations', label: t.results.activations, icon: TrendingUp },
               { key: 'weights', label: t.results.weights, icon: Layers },
               { key: 'aggregate', label: t.results.aggregate, icon: BarChart3 },
               { key: 'signals', label: t.results.learningSignals, icon: TrendingUp },
-            ].map(({ key, label, icon: Icon }) => (
+            ] as const).map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
-                onClick={() => setChartType(key as any)}
+                onClick={() => setChartType(key)}
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${
                   chartType === key
                     ? 'bg-cyan-50 text-cyan-600 border border-cyan-200'
@@ -704,12 +767,46 @@ export function Results() {
             </Card>
           )}
 
+          {chartType === 'signals' && (
+            <Card className="p-4 space-y-2">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-500">{t.results.learningSignals}</label>
+                <button
+                  onClick={() => setSelectedSignals(signalNames.slice(0, 6))}
+                  className="p-1 rounded text-slate-400 hover:text-violet-600 transition-colors"
+                  title={t.results.selectAll}
+                >
+                  <CheckSquare size={13} />
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {signalNames.map(signal => (
+                  <button
+                    key={signal}
+                    onClick={() => setSelectedSignals(previous =>
+                      previous.includes(signal)
+                        ? previous.filter(item => item !== signal)
+                        : [...previous, signal].slice(-6)
+                    )}
+                    className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
+                      selectedSignals.includes(signal)
+                        ? 'bg-violet-50 text-violet-600 border border-violet-200'
+                        : 'text-slate-400 border border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {getDisplayName(signal)}
+                  </button>
+                ))}
+              </div>
+            </Card>
+          )}
+
           {chartType === 'aggregate' && (
             <Card className="p-4 space-y-3">
               <label className="block text-xs font-bold text-slate-500">{t.results.phase}</label>
               <select
                 value={selectedPhase}
-                onChange={(e) => setSelectedPhase(e.target.value)}
+                onChange={(e) => setPhaseSelection(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-800 text-sm focus:border-cyan-500/50 focus:outline-none"
               >
                 {phases.map(p => <option key={p} value={p}>{p}</option>)}
@@ -789,7 +886,7 @@ export function Results() {
                 <button
                   onClick={() => {
                     if (plotData) {
-                      downloadResultsCSV(plotData, `ddm-results-network${selectedNetwork + 1}.csv`);
+                      downloadResultsCSV(plotData, `ddm-results-network${effectiveSelectedNetwork + 1}.csv`);
                     }
                   }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 hover:bg-slate-100 transition-colors"
@@ -814,9 +911,13 @@ export function Results() {
                   onClick={() => {
                     if (plotData) {
                       const cols = chartType === 'weights' ? selectedConns :
-                                   chartType === 'signals' ? ['dVTA', 'dH'] : selectedUnits;
-                      const filteredData = plotData.map((row: any) => {
-                        const filtered: any = { Phase: row.Phase, Trial: row.Trial, TimeStep: row.TimeStep };
+                                   chartType === 'signals' ? selectedSignals : selectedUnits;
+                      const filteredData = plotData.map(row => {
+                        const filtered: SimulationResult = {
+                          Phase: row.Phase,
+                          Trial: row.Trial,
+                          TimeStep: row.TimeStep,
+                        };
                         cols.forEach(col => { filtered[col] = row[col]; });
                         return filtered;
                       });
@@ -833,12 +934,18 @@ export function Results() {
 
             <div ref={exportWrapperRef}>
             <div ref={chartRef} className="h-[450px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={0}
+                minHeight={450}
+                initialDimension={{ width: 900, height: 450 }}
+              >
                 {chartType === 'activations' ? (
                   <LineChart data={activationData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="trial" stroke="#64748b" fontSize={11} />
-                    <YAxis domain={[0, 1]} stroke="#64748b" fontSize={11} />
+                    <YAxis domain={([0, 1])} stroke="#64748b" fontSize={11} />
                     <Tooltip content={<CustomChartTooltip />} />
                     <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} formatter={italicLegendFormatter} />
                     {phaseBoundaries.map((b, i) => (
@@ -869,14 +976,24 @@ export function Results() {
                       <ReferenceLine key={i} x={b.trial} stroke="#94a3b8" strokeDasharray="5 5"
                         label={{ value: b.phase, position: 'top', fill: '#64748b', fontSize: 11 }} />
                     ))}
-                    <Line type="monotone" dataKey="dVTA" stroke="#ec4899" strokeWidth={2} dot={false} name={t.results.dVTA} activeDot={{ r: 4, strokeWidth: 0 }} />
-                    <Line type="monotone" dataKey="dH" stroke="#f59e0b" strokeWidth={2} dot={false} name={t.results.dH} activeDot={{ r: 4, strokeWidth: 0 }} />
+                    {selectedSignals.map((signal, index) => (
+                      <Line
+                        key={signal}
+                        type="monotone"
+                        dataKey={signal}
+                        stroke={COLORS[index % COLORS.length]}
+                        strokeWidth={2}
+                        dot={false}
+                        name={getDisplayName(signal)}
+                        activeDot={{ r: 4, strokeWidth: 0 }}
+                      />
+                    ))}
                   </LineChart>
                 ) : chartType === 'weights' ? (
                   <LineChart data={weightData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="trial" stroke="#64748b" fontSize={11} />
-                    <YAxis domain={[0, 1]} stroke="#64748b" fontSize={11} />
+                    <YAxis domain={([0, 1])} stroke="#64748b" fontSize={11} />
                     <Tooltip content={<CustomChartTooltip />} />
                     <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} formatter={italicLegendFormatter} />
                     {phaseBoundaries.map((b, i) => (
@@ -907,7 +1024,7 @@ export function Results() {
                   <ComposedChart data={aggregateData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="unit" stroke="#64748b" fontSize={11} tick={<ItalicUnitTick />} />
-                    <YAxis domain={[0, 1]} stroke="#64748b" fontSize={11} />
+                    <YAxis domain={([0, 1])} stroke="#64748b" fontSize={11} />
                     <Tooltip content={<CustomChartTooltip />} />
                     <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 0, 0]} opacity={0.7}>
                       <ErrorBar dataKey="error" width={4} stroke="#64748b" />
@@ -926,7 +1043,7 @@ export function Results() {
                   <BarChart data={aggregateData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="unit" stroke="#64748b" fontSize={11} tick={<ItalicUnitTick />} />
-                    <YAxis domain={[0, 1]} stroke="#64748b" fontSize={11} />
+                    <YAxis domain={([0, 1])} stroke="#64748b" fontSize={11} />
                     <Tooltip content={<CustomChartTooltip />} />
                     <Bar dataKey="value" fill="#06b6d4" radius={[6, 6, 0, 0]}>
                       <ErrorBar dataKey="error" width={4} stroke="#64748b" />

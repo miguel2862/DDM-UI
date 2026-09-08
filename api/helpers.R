@@ -1,5 +1,23 @@
 # DDM Helper Functions
 
+`%||%` <- function(value, fallback) if (is.null(value)) fallback else value
+
+# Reject foreign model requests without changing the original DDM equations.
+DDM.assert_request <- function(body, npes = NULL) {
+  for (key in c("model", "modelKind")) {
+    model <- tolower(as.character(body[[key]] %||% "dtd"))
+    if (length(model) != 1L || !model %in% c("dtd", "ddm")) {
+      stop("Only the DDM model is supported by this application")
+    }
+  }
+  layers <- c("US", "PrimarySensory", "AssociativeSensory", "Hippocampal",
+              "AssociativeMotor", "PrimaryMotor", "Dopaminergic")
+  if (!is.null(npes) && "Layer" %in% names(npes) && any(!npes$Layer %in% layers)) {
+    stop("The network contains a layer outside the DDM model")
+  }
+  invisible(TRUE)
+}
+
 create.NPEs <- function(npe) {
   NPEs <- as.data.frame(matrix(nrow = length(npe), ncol = 9))
   for (n in 1:length(npe)) {

@@ -1,10 +1,10 @@
-# DDM-UI <img src="images/icon.ico" alt="DDM Simulator Logo" width="120" align="right"/>
+# DDM-UI 3.2 <img src="images/icon.ico" alt="DDM Simulator Logo" width="120" align="right"/>
 
 > Advancing behavioral science through open simulation
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Open Science](https://img.shields.io/badge/Open-Science-blue.svg)](https://en.wikipedia.org/wiki/Open_science)
-[![Download for macOS](https://img.shields.io/badge/Download-macOS_(arm64)-000000?logo=apple&logoColor=white)](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.dmg)
+[![Download for macOS](https://img.shields.io/badge/Download-macOS_(arm64)-000000?logo=apple&logoColor=white)](https://github.com/miguel2862/DDM-UI/releases/download/3.2/DDM-UI-3.2.0-arm64.dmg)
 [![Download for Windows](https://img.shields.io/badge/Download-Windows_(x64)-0078D4?logo=windows&logoColor=white)](https://github.com/miguel2862/DDM-UI/releases/download/3.0/DDM-UI.exe)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -21,7 +21,23 @@ Whether you study extinction, blocking, latent inhibition, or autoshaped choice,
 
 ---
 
-## DDM-UI v3.0 — Standalone Desktop Application
+## DDM-UI v3.2 — Network architecture and step-by-step observation
+
+### Publication-ready network architecture
+
+The network view uses diffuse learning fields, colored units and explicit connections. Arrange the units and export a clean PNG or SVG without editing buttons, locks or selection controls.
+
+![DDM publication network](images/network-publication-3.2.png)
+
+### Observe the model step by step
+
+Enable **Record equations step by step** before running a simulation. Inspect the first network's actual activations, thresholds, learning equations and connection weights, then move forward or backward through timesteps and trials without rerunning the model.
+
+[Download DDM-UI 3.2 for macOS (Apple Silicon)](https://github.com/miguel2862/DDM-UI/releases/download/3.2/DDM-UI-3.2.0-arm64.dmg) · [Usage guide](docs/PUBLICATION_AND_STEP_BY_STEP.md)
+
+---
+
+## Previous desktop release: DDM-UI v3.0
 
 Version 3.0 is a complete ground-up redesign. The original single-file R Shiny application (3,908 lines) has been replaced by a standalone desktop application: a React 18 + TypeScript frontend driving the full R simulation engine through a local Plumber API. Everything is bundled inside the installer — R Portable, all 84+ packages, the frontend, the API. No dependencies. No configuration. Download, install, open.
 

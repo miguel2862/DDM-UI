@@ -89,6 +89,7 @@ get_all_templates <- function() {
 
 get_template_data <- function(template_id) {
 
+
   # -- Extinction ---------------------------------------------------------------
   if (template_id == "extinction") {
     return(list(
@@ -138,6 +139,60 @@ get_template_data <- function(template_id) {
         "extinction, Random, Extinction, 100, False"
       ),
       hasITI = c(FALSE, FALSE)
+    ))
+  }
+
+  # -- Negative Automaintenance (omission, closed loop) -------------------------
+  if (template_id == "negative_automaintenance") {
+    return(list(
+      id = "negative_automaintenance",
+      name = "Negative Automaintenance (omission)",
+      available = TRUE,
+      npes = data.frame(
+        NPE = c("US", "D", "S1", "S..1", "H1", "M..1", "M.1"),
+        Type = rep("Excitatory", 7),
+        Layer = c("US", "Dopaminergic", "PrimarySensory", "AssociativeSensory", "Hippocampal", "AssociativeMotor", "PrimaryMotor"),
+        Activation = rep(0, 7),
+        Temporal.Summation = rep(0.1, 7),
+        Activation.Decay = rep(0.1, 7),
+        mu = rep(0.2, 7),
+        sigma = rep(0.15, 7),
+        logisSigma = rep(0.1, 7),
+        stringsAsFactors = FALSE
+      ),
+      # La ultima conexion M.1 -> US es el LAZO CERRADO (inerte en el motor: US es
+      # entrada; se maneja por el config striatal). Se incluye para verse en la arquitectura.
+      connections = data.frame(
+        PreSinapticNPE = c("S1", "S..1", "S..1", "M..1", "M..1", "US", "M.1"),
+        PostSinapticNPE = c("S..1", "H1", "M..1", "D", "M.1", "D", "US"),
+        Weight = c(0.1, 0.1, 0.1, 0.1, 0.1, 1.0, 0.0),
+        alpha = rep(0.5, 7),
+        beta = rep(0.12, 7),
+        alpha_prime = rep(0.5, 7),
+        beta_prime = rep(0.12, 7),
+        stringsAsFactors = FALSE
+      ),
+      trials = list(
+        Omision = c(
+          "US,0.00,S1,1.00,True",
+          "US,0.00,S1,1.00,True",
+          "US,0.00,S1,1.00,True",
+          "US,0.00,S1,1.00,True",
+          "US,1.00,S1,1.00,True"
+        )
+      ),
+      contingencies = c(
+        "Omision, Random, Omision, 120, False"
+      ),
+      hasITI = c(FALSE),
+      # Compuerta estriatal + lazo cerrado. omega = arbitraje pavloviano<->instrumental.
+      striatal = list(
+        channels = list("M.1"),
+        withhold = TRUE,
+        loop = "omission",
+        cue_of = list("M.1" = "S1"),
+        omega = 0.85, rho = 0, tau = 0.12
+      )
     ))
   }
 

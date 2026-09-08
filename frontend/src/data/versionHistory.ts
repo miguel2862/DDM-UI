@@ -6,6 +6,14 @@ export interface VersionEntry {
 
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '3.2',
+    date: 'September 2026',
+    changes: [
+      'Publication network view with diffuse fields, colored units and clean PNG/SVG export',
+      'Step-by-step observation of actual activations, learning equations and connection weights',
+    ],
+  },
+  {
     version: '3.0',
     date: 'February 2026',
     changes: [

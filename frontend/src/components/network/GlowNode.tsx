@@ -10,10 +10,21 @@
  * - Layer-specific accent color inherited via data.color
  */
 import { memo } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { motion } from 'framer-motion';
 
-function GlowNodeComponent({ data, id }: any) {
+interface GlowNodeData extends Record<string, unknown> {
+  label: string;
+  color: string;
+  size: number;
+  hasSource: boolean;
+  hasTarget: boolean;
+  layerIndex?: number;
+}
+
+type GlowNodeModel = Node<GlowNodeData, 'glowNode'>;
+
+function GlowNodeComponent({ data, id }: NodeProps<GlowNodeModel>) {
   const { label, color, size, hasSource, hasTarget, layerIndex } = data;
   const r = size / 2;
   const svgSize = size + 30; // extra room for glow bleed

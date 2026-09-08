@@ -16,13 +16,14 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
   const [apiReady, setApiReady] = useState(false);
   const [progress, setProgress] = useState(0);
   const { t } = useI18n();
-  const startTime = useRef(Date.now());
+  const startTime = useRef<number | null>(null);
   const apiReadyTime = useRef<number | null>(null);
 
   // Smooth visual progress: always animate from 0→100 over MIN_SPLASH_MS
   useEffect(() => {
+    startTime.current = Date.now();
     const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime.current;
+      const elapsed = Date.now() - (startTime.current ?? Date.now());
       const fraction = elapsed / MIN_SPLASH_MS;
 
       if (apiReadyTime.current) {
@@ -68,7 +69,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
     if (!apiReady) return;
     if (showHistory) return;
 
-    const elapsed = Date.now() - startTime.current;
+    const elapsed = Date.now() - (startTime.current ?? Date.now());
     const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
 
     const timer = setTimeout(() => {

@@ -9,8 +9,8 @@ export const en = {
     taglineLong: 'A connectionist interpretation of the unified principle of reinforcement',
     credits: 'Interface designed by Miguel Ángel Aguayo Mendoza',
     university: 'University of Guadalajara',
-    lastModified: 'Last modified: February 2026',
-    version: 'v3.0',
+    lastModified: 'Last modified: September 2026',
+    version: 'v3.2',
   },
 
   // ── Navigation / Sidebar ──
@@ -32,9 +32,10 @@ export const en = {
     heroTitle1: 'Diffuse',
     heroTitleOld: 'Discrepancy Model',
     heroTitleNew: 'Temporal Discrepancy',
-    heroDescription: 'Formerly known as the Diffuse Discrepancy Model (Donahoe, Burgos & Palmer, 1993). The DTD is a connectionist interpretation of the unified principle of reinforcement. Simulate Pavlovian and operant conditioning with neurobiologically grounded neural networks.',
+    heroDescription: 'Build networks, define temporal protocols and simulate learning with the original DDM (Donahoe, Burgos & Palmer, 1993). Export publication-ready networks and inspect the actual equations timestep by timestep.',
     quickStart: 'Quick Start: Extinction',
     buildScratch: 'Build From Scratch',
+
     npes: 'NPEs',
     connections: 'Connections',
     trialTypes: 'Trial Types',
@@ -62,42 +63,53 @@ export const en = {
 
   // ── Phenomena (names + descriptions) ──
   phenomena: {
+
+
+
+
+
     extinction: {
       name: 'Extinction',
       description: 'A conditioned response decreases when the CS is repeatedly presented without the US. The network learns to suppress responses that no longer predict reinforcement.',
       category: 'Basic',
+      phases: 'Training (100) → Extinction (100)',
     },
     alcala_2017: {
       name: 'Autoshaped Impulsivity (Alcalá, 2017)',
       description: 'Smaller-Sooner (SS) vs Larger-Later (LL) autoshaped impulsive choice with ITI. Context stimulus modulates responding to immediate and delayed reinforcers.',
       category: 'Choice',
+      phases: 'SS/LL (100 each, ITI) → Test (25)',
     },
     burgos_donahoe_blocking: {
       name: 'Blocking (Burgos & Donahoe, 2016)',
       description: 'Kamin blocking: prior A+ training prevents learning about X when AX+ is presented. Demonstrates that redundant predictors fail to acquire associative strength.',
       category: 'Compound',
+      phases: 'A+ (100) → AX+ (100) → Test X (25)',
     },
     burgos_donahoe_successive: {
       name: 'Successive (Burgos & Donahoe, 2016)',
       description: 'Successive training: A+ then X+ are trained separately. Both acquire associative strength independently. Baseline comparison for blocking.',
       category: 'Compound',
+      phases: 'A+ (100) → X+ (100) → Test A (25)',
     },
     acquisition: {
       name: 'Acquisition',
       description: 'The most fundamental learning phenomenon: a neutral CS paired with a biologically significant US gradually acquires the ability to elicit a conditioned response.',
       category: 'Basic',
+      phases: 'Training CS+US (100)',
     },
     latent_inhibition: {
       name: 'Latent Inhibition',
       description: 'Pre-exposure to a CS without consequence retards later conditioning when that CS is paired with a US. In the DTD, prior non-reinforced presentations weaken connection weights through the discrepancy mechanism, slowing subsequent acquisition.',
       category: 'Basic',
+      phases: 'Pre-exposure CS (100) → Training CS+US (100)',
     },
   },
 
   // ── Network Builder ──
   network: {
     pageTitle: 'Network Architecture',
-    pageSubtitle: 'Define neural processing units and their connections',
+    pageSubtitle: 'Build and edit your neural network architecture',
     tabUnits: 'Units',
     tabConnections: 'Connections',
     export: 'Export',
@@ -144,6 +156,16 @@ export const en = {
 
   // ── Trial Designer ──
   trial: {
+
+
+
+
+
+
+
+
+
+
     pageTitle: 'Trial & Contingency Designer',
     pageSubtitle: 'Define trial types and configure experimental phases',
     addTrial: 'Add Trial',
@@ -215,6 +237,36 @@ export const en = {
 
   // ── Simulation ──
   sim: {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     pageTitle: 'Simulation',
     pageSubtitle: 'Run the neural network and observe learning in real time',
     networks: 'Networks',
@@ -237,12 +289,13 @@ export const en = {
     syncSequential: 'Sync Sequential',
     syncSequentialTooltip: 'Synchronous + Sequential: All NPE activations are computed first, then all weights are updated simultaneously. NPEs and connections are processed in the fixed order they were defined.',
     discrepancyCriterion: 'Discrepancy Criterion',
-    discrepancyTooltip: 'The discrepancy criterion (disc) determines the minimum difference between the current activation discrepancy (d) and the criterion for switching between increment and decrement learning. When d ≥ disc, connection weights increase (acquisition). When d < disc, weights decrease (extinction). Default: 0.001. Tip: a value of 0.005 may improve extinction dynamics by reducing false increments caused by stochastic dVTA fluctuations. Historical values used: 0.001 (current default), 0.05 (Burgos, 2015 version).',
+    discrepancyTooltip: 'The discrepancy criterion (disc) selects the learning branch: d ≥ disc uses the increment rule; d < disc uses the decrement rule. Default: 0.0015. Saved experiments retain their configured value.',
     runSimulation: 'Run Simulation',
     completeBeforeRunning: 'Complete the network architecture, trials, and contingencies before running.',
     simulating: 'Simulating...',
     processing: 'Processing',
     networksSuffix: 'network(s)',
+    durationConnector: 'in',
     completed: 'completed',
     simulationFailed: 'Simulation Failed',
     apiNotRunning: 'Make sure the R API is running on port 8000.',
@@ -372,11 +425,19 @@ export const en = {
   // ── Help ──
   help: {
     pageTitle: 'Help & About',
-    pageSubtitle: 'Learn about the DTD model and how to use this application',
+    pageSubtitle: 'Learn about the DDM and how to use this application',
     aboutTitle: 'About the Model',
     aboutP1: 'The Diffuse Temporal Discrepancy Model (DTD), formerly known as the Diffuse Discrepancy Model (DiffDiscM), was originally developed by Donahoe, Burgos, and Palmer (1993) as a connectionist interpretation of the unified principle of reinforcement. It provides a computational framework that accounts for both operant and Pavlovian conditioning within a single neural-network architecture.',
     aboutP2: 'The model simulates how neural processing elements (NPEs) interact through weighted connections to produce learned behavior. Reinforcement occurs when a discrepancy between expected and actual outcomes activates a dopaminergic unit, which in turn diffusely modulates connection weights across the network.',
     aboutP3: 'DDM-UI was developed by Aguayo-Mendoza and Dos Santos (2025) as a user interface to facilitate the use of the DTD model in behavioral research. The original SelNet1© interface was used in over 20 published studies spanning phenomena such as acquisition, extinction, blocking, overshadowing, latent inhibition, autoshaping, and contextual conditioning.',
+
+
+
+
+
+
+
+
     networkTitle: 'Network Architecture',
     networkIntro: 'The DTD network is composed of seven layer types, each representing a distinct functional role:',
     layerUS: 'US (Unconditioned Stimulus)',
@@ -424,7 +485,7 @@ export const en = {
     step3Title: 'Set contingencies and phases.',
     step3Desc: 'Arrange trial types into phases with specific numbers of repetitions. You can add multiple phases to model acquisition, extinction, rest periods, and test conditions.',
     step4Title: 'Run the simulation.',
-    step4Desc: 'Go to the Simulate page, choose the number of networks, then start the simulation. The R backend will execute the DTD engine and return results.',
+    step4Desc: 'Go to the Simulate page, choose the number of networks and start the simulation. The R backend runs the original DDM. Optionally enable the equation inspector before running to record the first network.',
     step5Title: 'Analyze results.',
     step5Desc: 'On the Results page, explore activation and weight trajectories across trials and phases. Switch between Individual (per-network) and General (across all networks) views. Use the aggregate chart to compare unit activations per phase.',
     referencesTitle: 'References',

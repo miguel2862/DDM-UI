@@ -13,7 +13,9 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useI18n } from '../i18n';
 
 export function TrialDesigner() {
-  const { npes, trials, contingencies, addTrial, removeTrial, setContingencies, setHasITI } = useSimStore();
+  const {
+    npes, trials, contingencies, addTrial, removeTrial, setContingencies, setHasITI,
+  } = useSimStore();
   const { t } = useI18n();
   const { confirm } = useConfirm();
 
@@ -47,7 +49,10 @@ export function TrialDesigner() {
   // Phase edit state
   const [editingPhaseIdx, setEditingPhaseIdx] = useState<number | null>(null);
 
-  const primarySensoryNPEs = npes.filter(n => n.layer === 'PrimarySensory' || n.layer === 'US');
+  const isOutcomeLayer = (layer: string) => layer === 'US';
+  const primarySensoryNPEs = npes.filter(n =>
+    n.layer === 'PrimarySensory' || isOutcomeLayer(n.layer)
+  );
 
   // Find ITI trials (single timestep, typically used as ITI)
   const itiTrialNames = Object.entries(trials)
@@ -71,7 +76,7 @@ export function TrialDesigner() {
       for (let i = 0; i < numTimesteps; i++) {
         const stimuli: Record<string, string> = {};
         primarySensoryNPEs.forEach(npe => {
-          stimuli[npe.name] = i === numTimesteps - 1 && npe.layer === 'US' ? '1.00' : npe.layer === 'US' ? '0.00' : '1.00';
+          stimuli[npe.name] = i === numTimesteps - 1 && isOutcomeLayer(npe.layer) ? '1.00' : isOutcomeLayer(npe.layer) ? '0.00' : '1.00';
         });
         steps.push({ stimuli, learning: true });
       }
@@ -106,7 +111,7 @@ export function TrialDesigner() {
     for (let i = 0; i < count; i++) {
       const stimuli: Record<string, string> = {};
       primarySensoryNPEs.forEach(npe => {
-        stimuli[npe.name] = i === count - 1 && npe.layer === 'US' ? '1.00' : npe.layer === 'US' ? '0.00' : '1.00';
+        stimuli[npe.name] = i === count - 1 && isOutcomeLayer(npe.layer) ? '1.00' : isOutcomeLayer(npe.layer) ? '0.00' : '1.00';
       });
       steps.push({ stimuli, learning: true });
     }
@@ -123,7 +128,7 @@ export function TrialDesigner() {
     setTimestepData(prev => prev.map((ts, i) => {
       const stimuli: Record<string, string> = {};
       primarySensoryNPEs.forEach(npe => {
-        stimuli[npe.name] = i === prev.length - 1 && npe.layer === 'US' ? '1.00' : npe.layer === 'US' ? '0.00' : '1.00';
+        stimuli[npe.name] = i === prev.length - 1 && isOutcomeLayer(npe.layer) ? '1.00' : isOutcomeLayer(npe.layer) ? '0.00' : '1.00';
       });
       return { ...ts, stimuli };
     }));
@@ -218,6 +223,7 @@ export function TrialDesigner() {
       const store = useSimStore.getState();
       setHasITI([...(store.hasITI || contingencies.map(() => false)), hasITIVal]);
     }
+
     setPhaseName('');
     setSelectedTrialTypes([]);
     setTrialCounts('100');
@@ -226,7 +232,8 @@ export function TrialDesigner() {
     setItiMinTrials(30);
     setItiMaxTrials(30);
     setItiTrialName('');
-  }, [phaseName, trialOrder, selectedTrialTypes, trialCounts, resetActivations, itiMinTrials, itiMaxTrials, itiTrialName, contingencies, setContingencies, setHasITI, editingPhaseIdx]);
+  }, [phaseName, trialOrder, selectedTrialTypes, trialCounts, resetActivations, itiMinTrials, itiMaxTrials, itiTrialName,
+      contingencies, setContingencies, setHasITI, editingPhaseIdx]);
 
   const handleEditPhase = useCallback((spec: string, idx: number) => {
     const parts = spec.split(',').map(s => s.trim());
@@ -245,6 +252,7 @@ export function TrialDesigner() {
       setItiMaxTrials(30);
       setItiTrialName('');
     }
+
     setEditingPhaseIdx(idx);
   }, []);
 
@@ -619,6 +627,8 @@ export function TrialDesigner() {
               />
             </div>
 
+
+
             <div>
               <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1">
                 {t.trial.presentationOrder}
@@ -809,6 +819,7 @@ export function TrialDesigner() {
                       </button>
                       <button
                         onClick={() => {
+
                           setContingencies(contingencies.filter((_, j) => j !== i));
                           // Keep hasITI array in sync with contingencies
                           const store = useSimStore.getState();
@@ -832,6 +843,7 @@ export function TrialDesigner() {
                     ) : (
                       <Badge variant="muted">{t.trial.reset}</Badge>
                     )}
+
                   </div>
                 </motion.div>
               );

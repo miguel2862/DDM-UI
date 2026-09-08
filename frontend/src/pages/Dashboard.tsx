@@ -51,8 +51,8 @@ export function Dashboard() {
       loadTemplate(data);
       setLoadingTemplate(null);
       navigate('/network');
-    } catch (err: any) {
-      setTemplateError(err.message || 'Failed to connect to R API. Make sure it is running on port 8000.');
+    } catch (err: unknown) {
+      setTemplateError(err instanceof Error ? err.message : 'Failed to connect to the R API.');
       setLoadingTemplate(null);
     }
   }, [loadTemplate, navigate, npes.length, trials, contingencies.length, simulationResults, confirm, t]);
@@ -211,7 +211,7 @@ export function Dashboard() {
           <p className="text-slate-500 text-lg leading-relaxed mb-6 max-w-xl">
             {t.dashboard.heroDescription}
           </p>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <motion.button
               whileHover={{ scale: loadingTemplate ? 1 : 1.02 }}
               whileTap={{ scale: loadingTemplate ? 1 : 0.98 }}
@@ -222,6 +222,7 @@ export function Dashboard() {
               {loadingTemplate && <Loader2 size={16} className="animate-spin" />}
               {loadingTemplate ? t.gallery.loading : t.dashboard.quickStart}
             </motion.button>
+
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}

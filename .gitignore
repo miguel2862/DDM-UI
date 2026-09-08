@@ -7,6 +7,9 @@ frontend/dist-ssr/
 
 # Electron build artifacts
 electron/release/
+electron/release-*/
+.ddm-ui-recovery/
+.impeccable/
 electron/R-portable/
 electron/R-portable-win/
 electron/.wine-ddm-ui/
@@ -53,7 +56,6 @@ pnpm-debug.log*
 *.pdf
 
 # Icon build artifacts
-icon.icns
 icon.iconset/
 
 # Claude project files

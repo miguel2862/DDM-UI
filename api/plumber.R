@@ -1,7 +1,8 @@
 library(plumber)
 library(jsonlite)
 
-source("simulation.R")
+source("simulation.R.dtd-backup")
+source("ddm_inspector.R")
 source("helpers.R")
 source("templates.R")
 
@@ -11,13 +12,28 @@ source("templates.R")
 #* Enable CORS
 #* @filter cors
 function(req, res) {
-  res$setHeader("Access-Control-Allow-Origin", "*")
+  origin <- req$HTTP_ORIGIN %||% ""
+  allowed_origin <- !nzchar(origin) || identical(origin, "null") ||
+    grepl("^https?://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?$", origin)
+  if (!allowed_origin) {
+    res$status <- 403
+    return(list(error = "Origin not allowed"))
+  }
+  if (nzchar(origin)) res$setHeader("Access-Control-Allow-Origin", origin)
+  res$setHeader("Vary", "Origin")
   res$setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-  res$setHeader("Access-Control-Allow-Headers", "Content-Type, Accept")
+  res$setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-DDM-Token")
 
   if (req$REQUEST_METHOD == "OPTIONS") {
     res$status <- 200
     return(list())
+  }
+
+  expected_token <- Sys.getenv("DDM_API_TOKEN", unset = "")
+  supplied_token <- req$HTTP_X_DDM_TOKEN %||% ""
+  if (nzchar(expected_token) && !identical(expected_token, supplied_token)) {
+    res$status <- 403
+    return(list(error = "Invalid local API token"))
   }
 
   plumber::forward()
@@ -27,13 +43,13 @@ function(req, res) {
 #* Health check
 #* @get /api/health
 function() {
-  list(status = "ok", timestamp = Sys.time())
+  list(status = "ok", timestamp = Sys.time(), models = I("dtd"), engine = "DDM")
 }
 
 
 #* Get all phenomenon templates (metadata only)
 #* @get /api/templates
-#* @serializer json
+#* @serializer json list(auto_unbox=TRUE, null="null", digits=NA)
 function() {
   get_all_templates()
 }
@@ -42,7 +58,7 @@ function() {
 #* Get full template data by ID
 #* @get /api/templates/<id>
 #* @param id The template identifier
-#* @serializer json
+#* @serializer json list(auto_unbox=TRUE, null="null", digits=NA)
 function(id) {
   get_template_data(id)
 }
@@ -50,13 +66,16 @@ function(id) {
 
 #* Validate network configuration
 #* @post /api/validate
-#* @serializer json
+#* @serializer json list(auto_unbox=TRUE, null="null", digits=NA)
 function(req) {
   body <- req$body
 
   tryCatch({
     npes <- as.data.frame(body$npes, stringsAsFactors = FALSE)
     connections <- as.data.frame(body$connections, stringsAsFactors = FALSE)
+    DDM.assert_request(body, npes)
+
+
 
     # Basic validation
     if (nrow(npes) < 2) {
@@ -87,7 +106,7 @@ function(req) {
 
 #* Create timesteps from phases and trials
 #* @post /api/create-phases
-#* @serializer json
+#* @serializer json list(auto_unbox=TRUE, null="null", digits=NA)
 function(req) {
   body <- req$body
 
@@ -110,7 +129,7 @@ function(req) {
 
 #* Run simulation (legacy — all networks at once, no real progress)
 #* @post /api/simulate
-#* @serializer json
+#* @serializer json list(auto_unbox=TRUE, null="null", digits=NA)
 function(req) {
   body <- req$body
 
@@ -124,7 +143,8 @@ function(req) {
     threshold <- ifelse(is.null(body$threshold), "gaussian", body$threshold)
     pupdate <- ifelse(is.null(body$pupdate), "async_random", body$pupdate)
     saveData <- if (!is.null(body$saveData)) body$saveData else list()
-    disc <- ifelse(is.null(body$disc), 0.001, as.numeric(body$disc))
+    disc <- ifelse(is.null(body$disc), 0.0015, as.numeric(body$disc))
+    DDM.assert_request(body, npes)
     # Ensure correct column names
     if (is.null(colnames(npes)) || !("NPE" %in% colnames(npes))) {
       colnames(npes) <- c("NPE", "Type", "Layer", "Activation", "Temporal.Summation",
@@ -139,12 +159,16 @@ function(req) {
     npes[, 4:9] <- lapply(npes[, 4:9, drop = FALSE], as.numeric)
     connections[, 3:7] <- lapply(connections[, 3:7, drop = FALSE], as.numeric)
 
+
+
     # Create timesteps
     timesteps <- Create.Phases(contingencies, trials)
 
     if (is.null(hasITI)) {
       hasITI <- rep(FALSE, length(contingencies))
     }
+
+
 
     # Run simulations
     results <- vector("list", numNetworks)
@@ -197,7 +221,7 @@ function(req) {
 
 #* Run a single network simulation (used for real-time progress)
 #* @post /api/simulate-one
-#* @serializer json
+#* @serializer json list(auto_unbox=TRUE, null="null", digits=NA)
 function(req) {
   body <- req$body
 
@@ -210,7 +234,8 @@ function(req) {
     threshold <- ifelse(is.null(body$threshold), "gaussian", body$threshold)
     pupdate <- ifelse(is.null(body$pupdate), "async_random", body$pupdate)
     saveData <- if (!is.null(body$saveData)) body$saveData else list()
-    disc <- ifelse(is.null(body$disc), 0.001, as.numeric(body$disc))
+    disc <- ifelse(is.null(body$disc), 0.0015, as.numeric(body$disc))
+    DDM.assert_request(body, npes)
 
     # Ensure correct column names
     if (is.null(colnames(npes)) || !("NPE" %in% colnames(npes))) {
@@ -226,11 +251,32 @@ function(req) {
     npes[, 4:9] <- lapply(npes[, 4:9, drop = FALSE], as.numeric)
     connections[, 3:7] <- lapply(connections[, 3:7, drop = FALSE], as.numeric)
 
+
+
     # Create timesteps
     timesteps <- Create.Phases(contingencies, trials)
 
     if (is.null(hasITI)) {
       hasITI <- rep(FALSE, length(contingencies))
+    }
+
+
+
+    # Pedagogical recording is opt-in and only observes the original DDM.
+    # Normal requests still call the unmodified historical function below.
+    if (is.list(body$inspector) && isTRUE(body$inspector$enabled)) {
+      inspected <- DDM.simulate_inspected(
+        NPEs = npes,
+        Connections = connections,
+        TimeSteps = timesteps,
+        HasITI = hasITI,
+        threshold = threshold,
+        disc = disc,
+        pupdate = pupdate,
+        saveData = saveData,
+        inspector = body$inspector
+      )
+      return(list(success = TRUE, result = inspected$result, inspector = inspected$inspector))
     }
 
     # Run ONE simulation

@@ -1,0 +1,49 @@
+.equation-inspector { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; color: #334155; overflow: hidden; font-size: 13px; }
+.equation-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 22px 24px; border-bottom: 1px solid #e2e8f0; }
+.equation-heading h2 { font-size: 19px; font-weight: 650; letter-spacing: -.025em; color: #1e293b; margin-bottom: 3px; }
+.equation-heading p, .equation-note { color: #64748b; line-height: 1.6; font-size: 12px; }
+.equation-inspector button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; background: #fff; border-radius: 7px; padding: 8px 11px; min-height: 36px; cursor: pointer; font-weight: 550; }
+.equation-inspector button:hover:not(:disabled) { background: #f1f5f9; }
+.equation-inspector button:disabled { color: #94a3b8; background: #f8fafc; cursor: default; }
+.equation-inspector :is(button, select, summary):focus-visible { outline: 2px solid #0072b2; outline-offset: 3px; }
+.equation-navigation { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 16px 24px 8px; }
+.equation-navigation p { font-variant-numeric: tabular-nums; font-weight: 600; }
+.equation-trial-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.equation-context { padding: 4px 24px 18px; }
+.equation-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-block: 1px solid #e2e8f0; }
+.equation-columns article { padding: 20px 24px; min-width: 0; }
+.equation-columns article + article { border-left: 1px solid #e2e8f0; }
+.equation-inspector label { display: block; font-weight: 650; margin-bottom: 8px; color: #1e293b; }
+.equation-inspector select { width: 100%; min-height: 39px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; }
+.equation-values { margin: 18px 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.equation-values > div { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; padding: 5px 0; border-bottom: 1px solid #f1f5f9; }
+.equation-values dt { color: #64748b; }
+.equation-values dd { color: #1e293b; text-align: right; overflow-wrap: anywhere; }
+.equation-formula { border-top: 1px solid #cbd5e1; padding: 12px 0 2px; font-variant-numeric: tabular-nums; line-height: 1.8; overflow-wrap: anywhere; }
+.equation-formula p + p { margin-top: 5px; }
+.equation-formula strong { display: block; margin-top: 10px; font-size: 16px; font-weight: 650; color: #0f172a; }
+.equation-formula strong span { font-size: 13px; font-weight: 500; }
+.equation-branch { font-weight: 600; color: #0072b2; font-size: 12px; }
+.equation-substitution { color: #64748b; font-size: 12px; }
+.equation-chart { margin-top: 22px; }
+.equation-chart svg { width: 100%; height: auto; display: block; }
+.equation-chart svg text { fill: #64748b; font: 11px system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+.equation-chart figcaption { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; }
+.equation-chart .equation-note { margin-top: 9px; }
+.equation-exc { color: #0072b2; }
+.equation-inh { color: #8e679c; }
+.equation-details { padding: 17px 24px; line-height: 1.8; overflow-wrap: anywhere; }
+.equation-details summary { cursor: pointer; font-weight: 600; }
+.equation-details p { margin-top: 10px; font-variant-numeric: tabular-nums; }
+.equation-inspector footer { padding: 12px 24px 18px; }
+.equation-notice { margin: 16px 24px 0; padding: 10px 12px; color: #805b15; background: #fff8e8; border: 1px solid #eadab9; border-radius: 6px; line-height: 1.6; }
+.equation-empty { padding: 24px; line-height: 1.7; }
+.equation-empty button { margin-top: 12px; }
+@media (max-width: 800px) {
+  .equation-columns { grid-template-columns: minmax(0, 1fr); }
+  .equation-columns article + article { border-left: 0; border-top: 1px solid #e2e8f0; }
+  .equation-heading, .equation-columns article, .equation-details { padding: 18px; }
+  .equation-navigation { padding-inline: 18px; }
+  .equation-context { padding-inline: 18px; }
+  .equation-notice { margin-inline: 18px; }
+}

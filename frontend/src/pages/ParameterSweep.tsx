@@ -9,6 +9,7 @@ import { Tooltip } from '../components/ui/Tooltip';
 import { useSimStore } from '../stores/useSimStore';
 import { runSimulation } from '../api/client';
 import { useI18n } from '../i18n';
+import type { SimulationResult } from '../types/ddm';
 
 const SWEEP_COLORS = [
   '#06b6d4', '#14b8a6', '#f59e0b', '#8b5cf6', '#ef4444',
@@ -21,18 +22,20 @@ interface SweepResult {
   medianActivation: number;
 }
 
+
+
 export function ParameterSweep() {
-  const { npes, connections, trials, contingencies, hasITI, getThresholdType, disc } = useSimStore();
+  const { npes, connections, trials, contingencies, hasITI, getThresholdType, disc, modelKind } = useSimStore();
   const { t } = useI18n();
 
-  const [sweepTarget, setSweepTarget] = useState<'connection' | 'npe'>('connection');
-  const [selectedElement, setSelectedElement] = useState('');
-  const [selectedParam, setSelectedParam] = useState('weight');
+  const [sweepTarget, setSweepTarget] = useState<'connection' | 'npe'>(('connection'));
+  const [selectedElement, setSelectedElement] = useState((''));
+  const [selectedParam, setSelectedParam] = useState(('weight'));
   const [rangeMin, setRangeMin] = useState(0);
   const [rangeMax, setRangeMax] = useState(1);
   const [steps, setSteps] = useState(10);
   const [numNetworks, setNumNetworks] = useState(3);
-  const [outputUnit, setOutputUnit] = useState('');
+  const [outputUnit, setOutputUnit] = useState((''));
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<SweepResult[]>([]);
@@ -45,8 +48,8 @@ export function ParameterSweep() {
   const connectionParams = ['weight', 'alpha', 'beta', 'alpha_prime', 'beta_prime'];
   const npeParams = ['mu', 'sigma', 'temporalSummation', 'activationDecay', 'logisSigma'];
 
-  const motorUnits = useMemo(() =>
-    npes.filter(n => n.layer !== 'PrimarySensory' && n.layer !== 'US').map(n => n.name),
+
+  const motorUnits = useMemo(() => (npes.filter(n => n.layer !== 'PrimarySensory' && n.layer !== 'US').map(n => n.name)),
     [npes]
   );
 
@@ -68,6 +71,7 @@ export function ParameterSweep() {
       let modifiedConns = connections.map(c => ({ ...c }));
       let modifiedNpes = npes.map(n => ({ ...n }));
 
+
       if (sweepTarget === 'connection') {
         modifiedConns = modifiedConns.map(c => {
           const connName = `${c.presynapticNPE}-${c.postsynapticNPE}`;
@@ -87,7 +91,7 @@ export function ParameterSweep() {
       }
 
       try {
-        const npeData: any = {
+        const npeData: Record<string, string[] | number[]> = {
           NPE: modifiedNpes.map(n => n.name),
           Type: modifiedNpes.map(n => n.type),
           Layer: modifiedNpes.map(n => n.layer),
@@ -98,7 +102,7 @@ export function ParameterSweep() {
           sigma: modifiedNpes.map(n => n.sigma),
           logisSigma: modifiedNpes.map(n => n.logisSigma),
         };
-        const connData: any = {
+        const connData: Record<string, string[] | number[]> = {
           PreSinapticNPE: modifiedConns.map(c => c.presynapticNPE),
           PostSinapticNPE: modifiedConns.map(c => c.postsynapticNPE),
           Weight: modifiedConns.map(c => c.weight),
@@ -117,14 +121,17 @@ export function ParameterSweep() {
           numNetworks,
           threshold: getThresholdType(),
           disc,
+          model: modelKind,
         });
 
         if (result.success) {
           const allNetMeans: number[] = [];
           for (const netData of result.results) {
             const lastPhase = netData[netData.length - 1]?.Phase;
-            const lastPhaseData = netData.filter((r: any) => r.Phase === lastPhase);
-            const vals = lastPhaseData.map((r: any) => typeof r[outputUnit] === 'number' ? r[outputUnit] : 0);
+            const lastPhaseData = netData.filter((r: SimulationResult) =>
+              r.Phase === lastPhase && (true)
+            );
+            const vals = lastPhaseData.map((r: SimulationResult) => typeof r[outputUnit] === 'number' ? Number(r[outputUnit]) : 0);
             const mean = vals.length > 0 ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : 0;
             allNetMeans.push(mean);
           }
@@ -147,7 +154,8 @@ export function ParameterSweep() {
     setProgress(100);
     setIsRunning(false);
   }, [canRun, sweepTarget, selectedElement, selectedParam, rangeMin, rangeMax, steps,
-      npes, connections, trials, contingencies, hasITI, numNetworks, getThresholdType, disc, outputUnit]);
+      npes, connections, trials, contingencies, hasITI, numNetworks, getThresholdType, disc, outputUnit,
+      modelKind]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -185,8 +193,12 @@ export function ParameterSweep() {
               <Tooltip content={t.sweep.targetTypeTooltip} />
             </label>
             <div className="flex gap-2">
-              {(['connection', 'npe'] as const).map(typ => (
-                <button key={typ} onClick={() => { setSweepTarget(typ); setSelectedElement(''); setSelectedParam(typ === 'connection' ? 'weight' : 'mu'); }}
+              {((['connection', 'npe'] as const)).map(typ => (
+                <button key={typ} onClick={() => {
+                  setSweepTarget(typ);
+                  setSelectedElement('');
+                  setSelectedParam(typ === 'connection' ? 'weight' : 'mu');
+                }}
                   className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
                     sweepTarget === typ ? 'bg-amber-50 text-amber-600 border-amber-200' : 'text-slate-400 border-slate-200'
                   }`}>
@@ -204,12 +216,12 @@ export function ParameterSweep() {
             <select value={selectedElement} onChange={(e) => setSelectedElement(e.target.value)}
               className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-800 text-sm focus:border-amber-500/50 focus:outline-none">
               <option value="">{t.sweep.select}</option>
-              {sweepTarget === 'connection'
+              {(sweepTarget === 'connection'
                 ? connections.map(c => {
                     const name = `${c.presynapticNPE}-${c.postsynapticNPE}`;
                     return <option key={name} value={name}>{name}</option>;
                   })
-                : npes.map(n => <option key={n.name} value={n.name}>{n.name}</option>)
+                : npes.map(n => <option key={n.name} value={n.name}>{n.name}</option>))
               }
             </select>
           </div>
@@ -221,7 +233,7 @@ export function ParameterSweep() {
             </label>
             <select value={selectedParam} onChange={(e) => setSelectedParam(e.target.value)}
               className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-800 text-sm focus:border-amber-500/50 focus:outline-none">
-              {(sweepTarget === 'connection' ? connectionParams : npeParams).map(p => (
+              {((sweepTarget === 'connection' ? connectionParams : npeParams)).map(p => (
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>
@@ -308,7 +320,13 @@ export function ParameterSweep() {
             </h3>
             <div className="h-[450px]">
               {results.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                  minWidth={0}
+                  minHeight={450}
+                  initialDimension={{ width: 800, height: 450 }}
+                >
                   <LineChart data={results}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="paramValue" stroke="#64748b" fontSize={11}

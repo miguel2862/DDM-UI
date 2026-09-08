@@ -11,8 +11,8 @@ export const es: Translations = {
     taglineLong: 'Una interpretación conexionista del principio unificado de reforzamiento',
     credits: 'Interfaz diseñada por Miguel Ángel Aguayo Mendoza',
     university: 'Universidad de Guadalajara',
-    lastModified: 'Última modificación: Febrero 2026',
-    version: 'v3.0',
+    lastModified: 'Última modificación: Septiembre 2026',
+    version: 'v3.2',
   },
 
   // ── Navigation / Sidebar ──
@@ -34,9 +34,10 @@ export const es: Translations = {
     heroTitle1: 'Modelo de',
     heroTitleOld: 'Discrepancia Difusa',
     heroTitleNew: 'Discrepancia Temporal Difusa',
-    heroDescription: 'Anteriormente conocido como Diffuse Discrepancy Model (Donahoe, Burgos y Palmer, 1993). El DTD es una interpretación conexionista del principio unificado de reforzamiento. Simule condicionamiento pavloviano y operante con redes neuronales fundamentadas neurobiológicamente.',
+    heroDescription: 'Construya redes, defina protocolos temporales y simule el aprendizaje con el DDM original (Donahoe, Burgos y Palmer, 1993). Exporte redes para publicación e inspeccione las ecuaciones reales timestep por timestep.',
     quickStart: 'Inicio rápido: Extinción',
     buildScratch: 'Construir desde cero',
+
     npes: 'ENPs',
     connections: 'Conexiones',
     trialTypes: 'Tipos de ensayo',
@@ -63,42 +64,53 @@ export const es: Translations = {
 
   // ── Phenomena (names + descriptions) ──
   phenomena: {
+
+
+
+
+
     extinction: {
       name: 'Extinción',
       description: 'La respuesta condicionada disminuye cuando el EC se presenta repetidamente sin el EI. La red aprende a suprimir respuestas que ya no predicen reforzamiento.',
       category: 'Básico',
+      phases: 'Entrenamiento (100) → Extinción (100)',
     },
     alcala_2017: {
       name: 'Impulsividad Automoldeada (Alcalá, 2017)',
       description: 'Elección impulsiva automoldeada Menor-Pronto (SS) vs Mayor-Después (LL) con IEE. El estímulo de contexto modula la respuesta a reforzadores inmediatos y demorados.',
       category: 'Elección',
+      phases: 'SS/LL (100 cada una, IEE) → Prueba (25)',
     },
     burgos_donahoe_blocking: {
       name: 'Bloqueo (Burgos & Donahoe, 2016)',
       description: 'Bloqueo de Kamin: el entrenamiento previo con A+ previene el aprendizaje sobre X cuando se presenta AX+. Demuestra que los predictores redundantes no adquieren fuerza asociativa.',
       category: 'Compuesto',
+      phases: 'A+ (100) → AX+ (100) → Prueba X (25)',
     },
     burgos_donahoe_successive: {
       name: 'Sucesivo (Burgos & Donahoe, 2016)',
       description: 'Entrenamiento sucesivo: A+ y luego X+ se entrenan por separado. Ambos adquieren fuerza asociativa independientemente. Comparación de línea base para bloqueo.',
       category: 'Compuesto',
+      phases: 'A+ (100) → X+ (100) → Prueba A (25)',
     },
     acquisition: {
       name: 'Adquisición',
       description: 'El fenómeno de aprendizaje más fundamental: un EC neutro pareado con un EI biológicamente significativo adquiere gradualmente la capacidad de elicitar una respuesta condicionada.',
       category: 'Básico',
+      phases: 'Entrenamiento EC+EI (100)',
     },
     latent_inhibition: {
       name: 'Inhibición Latente',
       description: 'La pre-exposición a un EC sin consecuencia retarda el condicionamiento posterior cuando ese EC se parea con un EI. En el DTD, las presentaciones previas sin reforzamiento debilitan los pesos de conexión mediante el mecanismo de discrepancia, retardando la adquisición subsecuente.',
       category: 'Básico',
+      phases: 'Preexposición EC (100) → Entrenamiento EC+EI (100)',
     },
   },
 
   // ── Network Builder ──
   network: {
     pageTitle: 'Arquitectura de Red',
-    pageSubtitle: 'Defina elementos de procesamiento neural y sus conexiones',
+    pageSubtitle: 'Construya y edite la arquitectura de su red neural',
     tabUnits: 'Unidades',
     tabConnections: 'Conexiones',
     export: 'Exportar',
@@ -145,6 +157,16 @@ export const es: Translations = {
 
   // ── Trial Designer ──
   trial: {
+
+
+
+
+
+
+
+
+
+
     pageTitle: 'Diseñador de Ensayos y Contingencias',
     pageSubtitle: 'Defina tipos de ensayo y configure fases experimentales',
     addTrial: 'Agregar ensayo',
@@ -213,6 +235,36 @@ export const es: Translations = {
 
   // ── Simulation ──
   sim: {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     pageTitle: 'Simulación',
     pageSubtitle: 'Ejecute la red neural y observe el aprendizaje en tiempo real',
     networks: 'Redes',
@@ -235,12 +287,13 @@ export const es: Translations = {
     syncSequential: 'Síncr. Secuenc.',
     syncSequentialTooltip: 'Síncrono + Secuencial: Primero se calculan todas las activaciones de los ENP, luego todos los pesos se actualizan simultáneamente. Los ENP y conexiones se procesan en el orden fijo en que fueron definidos.',
     discrepancyCriterion: 'Criterio de discrepancia',
-    discrepancyTooltip: 'El criterio de discrepancia (disc) determina la diferencia mínima entre la discrepancia de activación actual (d) y el criterio para cambiar entre aprendizaje de incremento y decremento. Cuando d ≥ disc, los pesos de conexión aumentan (adquisición). Cuando d < disc, los pesos disminuyen (extinción). Predeterminado: 0.001. Tip: un valor de 0.005 puede mejorar la dinámica de extinción al reducir incrementos falsos causados por fluctuaciones estocásticas del dVTA. Valores históricos: 0.001 (default actual), 0.05 (versión Burgos, 2015).',
+    discrepancyTooltip: 'El criterio de discrepancia (disc) selecciona la rama de aprendizaje: con d ≥ disc se aplica la regla de incremento; con d < disc, la de decremento. Predeterminado: 0.0015. Los experimentos guardados conservan el valor configurado.',
     runSimulation: 'Ejecutar simulación',
     completeBeforeRunning: 'Complete la arquitectura de red, ensayos y contingencias antes de ejecutar.',
     simulating: 'Simulando...',
     processing: 'Procesando',
     networksSuffix: 'red(es)',
+    durationConnector: 'en',
     completed: 'completada(s)',
     simulationFailed: 'Simulación fallida',
     apiNotRunning: 'Asegúrese de que la API de R esté ejecutándose en el puerto 8000.',
@@ -366,11 +419,19 @@ export const es: Translations = {
   // ── Help ──
   help: {
     pageTitle: 'Ayuda e Información',
-    pageSubtitle: 'Conozca el modelo DTD y cómo usar esta aplicación',
+    pageSubtitle: 'Conozca el DDM y cómo usar esta aplicación',
     aboutTitle: 'Acerca del Modelo',
     aboutP1: 'El Modelo de Discrepancia Temporal Difusa (DTD), anteriormente conocido como Modelo de Discrepancia Difusa (DiffDiscM), fue desarrollado originalmente por Donahoe, Burgos y Palmer (1993) como una interpretación conexionista del principio unificado de reforzamiento. Proporciona un marco computacional que da cuenta tanto del condicionamiento operante como del pavloviano dentro de una arquitectura de red neural única.',
     aboutP2: 'El modelo simula cómo los elementos de procesamiento neural (ENP) interactúan a través de conexiones ponderadas para producir comportamiento aprendido. El reforzamiento ocurre cuando una discrepancia entre los resultados esperados y reales activa una unidad dopaminérgica, que a su vez modula difusamente los pesos de conexión en toda la red.',
     aboutP3: 'DDM-UI fue desarrollado por Aguayo-Mendoza y Dos Santos (2025) como una interfaz de usuario para facilitar el uso del modelo DTD en investigación conductual. La interfaz original SelNet1© se utilizó en más de 20 estudios publicados que abarcan fenómenos como adquisición, extinción, bloqueo, ensombrecimiento, inhibición latente, automoldeamiento y condicionamiento contextual.',
+
+
+
+
+
+
+
+
     networkTitle: 'Arquitectura de Red',
     networkIntro: 'La red del DTD está compuesta por siete tipos de capas, cada una representando un rol funcional distinto:',
     layerUS: 'EI (Estímulo Incondicionado)',
@@ -418,7 +479,7 @@ export const es: Translations = {
     step3Title: 'Establezca contingencias y fases.',
     step3Desc: 'Organice los tipos de ensayo en fases con números específicos de repeticiones. Puede agregar múltiples fases para modelar adquisición, extinción, períodos de descanso y condiciones de prueba.',
     step4Title: 'Ejecute la simulación.',
-    step4Desc: 'Vaya a la página Simular, elija el número de redes, luego inicie la simulación. El backend de R ejecutará el motor DTD y devolverá resultados.',
+    step4Desc: 'Vaya a Simular, elija el número de redes y ejecute la simulación. El backend de R utiliza el DDM original. Opcionalmente, active el inspector de ecuaciones antes de ejecutar para registrar la primera red.',
     step5Title: 'Analice resultados.',
     step5Desc: 'En la página de Resultados, explore trayectorias de activación y pesos a través de ensayos y fases. Alterne entre vistas Individual (por red) y General (todas las redes). Use el gráfico agregado para comparar activaciones de unidades por fase.',
     referencesTitle: 'Referencias',

@@ -1,18 +1,43 @@
+import { assertDDMPayload } from '../utils/ddmCompatibility';
 import { useEffect } from 'react';
 import { useSimStore } from '../stores/useSimStore';
+import type {
+  AppMode, Connection, ModelKind, NPE, Phase,
+  SimulationMetadata, SimulationResult, ThresholdPreset,
+} from '../types/ddm';
 
 const AUTOSAVE_KEY = 'ddm-ui-autosave';
+
+interface SavedSession {
+  npes?: NPE[];
+  connections?: Connection[];
+  trials?: Record<string, string[]>;
+  contingencies?: string[];
+  hasITI?: boolean[];
+  phases?: Phase[];
+  numNetworks?: number;
+  thresholdPreset?: ThresholdPreset;
+  disc?: number;
+  pupdate?: string;
+  appMode?: AppMode;
+  lockedLayout?: Record<string, { x: number; y: number }> | null;
+  modelKind?: ModelKind;
+  simulationResults?: SimulationResult[][];
+  simulationMetadata?: SimulationMetadata;
+  _timestamp?: number;
+}
 
 /**
  * Checks if a previous session exists in localStorage.
  * Returns the saved data (or null) without restoring it.
  */
-export function getSavedSession(): any | null {
+export function getSavedSession(): SavedSession | null {
   try {
     const saved = localStorage.getItem(AUTOSAVE_KEY);
     if (!saved) return null;
-    const data = JSON.parse(saved);
+    const data = JSON.parse(saved) as SavedSession;
     if (!data || !data.npes || data.npes.length === 0) return null;
+    assertDDMPayload(data);
     return data;
   } catch {
     return null;
@@ -22,7 +47,8 @@ export function getSavedSession(): any | null {
 /**
  * Restores a saved session into the Zustand store.
  */
-export function restoreSession(data: any) {
+export function restoreSession(data: SavedSession) {
+  assertDDMPayload(data);
   const store = useSimStore.getState();
   store.setNPEs(data.npes || []);
   store.setConnections(data.connections || []);
@@ -35,6 +61,8 @@ export function restoreSession(data: any) {
   if (data.disc) store.setDisc(data.disc);
   if (data.pupdate) store.setPupdate(data.pupdate);
   if (data.appMode) store.setAppMode(data.appMode);
+  if (data.lockedLayout) store.setLockedLayout(data.lockedLayout);
+  if (data.modelKind) store.setModelKind(data.modelKind);
   // Restore simulation results if available
   if (data.simulationResults && data.simulationMetadata) {
     store.setSimResults(data.simulationResults, data.simulationMetadata);
@@ -59,7 +87,7 @@ function saveCurrentState() {
     const state = useSimStore.getState();
     if (state.npes.length === 0) return;
 
-    const payload: Record<string, any> = {
+    const payload: SavedSession = {
       npes: state.npes,
       connections: state.connections,
       trials: state.trials,
@@ -71,6 +99,8 @@ function saveCurrentState() {
       disc: state.disc,
       pupdate: state.pupdate,
       appMode: state.appMode,
+      modelKind: state.modelKind,
+      lockedLayout: state.lockedLayout,
       _timestamp: Date.now(),
     };
 

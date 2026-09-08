@@ -2,16 +2,8 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ReactFlow,
-  Background,
-  type Node,
-  type Edge,
-  MarkerType,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import {
   Play, Pause, SkipForward, RotateCcw, CheckCircle2, AlertCircle,
-  Loader2, Brain, Activity, Gauge, ChevronRight, Download, Upload, ChevronDown,
+  Loader2, Brain, Activity, Gauge, ChevronRight, ChevronLeft, Download, Upload, ChevronDown,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { StatCard } from '../components/ui/StatCard';
@@ -20,39 +12,14 @@ import { Tooltip } from '../components/ui/Tooltip';
 import { useSimStore } from '../stores/useSimStore';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useToast } from '../components/ui/Toast';
-import { getDisplayName } from '../utils/displayNames';
-import { runSimulationOne } from '../api/client';
+import { runSimulationOne, serializeNetwork, validateNetwork } from '../api/client';
 import { downloadArchitectureJSON } from '../utils/dataExport';
-import { useI18n } from '../i18n';
-
-const layerPositions: Record<string, { x: number; y: number }> = {
-  US: { x: 50, y: 350 },
-  PrimarySensory: { x: 50, y: 100 },
-  AssociativeSensory: { x: 250, y: 100 },
-  Hippocampal: { x: 250, y: 320 },
-  Dopaminergic: { x: 450, y: 350 },
-  AssociativeMotor: { x: 450, y: 150 },
-  PrimaryMotor: { x: 650, y: 150 },
-};
-
-function getNodeShape(layer: string, type: string): string {
-  if (layer === 'US') return '8px';
-  if (layer === 'PrimarySensory' || layer === 'PrimaryMotor') return '4px';
-  if (type === 'Inhibitory') return '2px';
-  if (layer === 'Dopaminergic') return '12px';
-  return '50%';
-}
-
-function activationColor(val: number): string {
-  if (val < 0.3) return '#3b82f6';
-  if (val < 0.6) return '#eab308';
-  return '#ef4444';
-}
-
-function activationGlow(val: number): string {
-  const color = activationColor(val);
-  return `0 0 ${Math.round(val * 30)}px ${color}88`;
-}
+import { useI18n, type Translations } from '../i18n';
+import type { SimulationMetadata, SimulationResult, ThresholdPreset } from '../types/ddm';
+import type { SimulationInspector } from '../types/inspector';
+import { PublicationNetwork } from '../components/network/PublicationNetwork';
+import { computePublicationLayout } from '../utils/publicationNetwork';
+import { EquationInspector } from '../components/simulation/EquationInspector';
 
 const pupdateOptions = [
   { value: 'async_random', labelKey: 'asyncRandom' as const, tooltipKey: 'asyncRandomTooltip' as const },
@@ -61,7 +28,7 @@ const pupdateOptions = [
   { value: 'sync_sequential', labelKey: 'syncSequential' as const, tooltipKey: 'syncSequentialTooltip' as const },
 ];
 
-function PUpdateDropdown({ pupdate, setPupdate, t }: { pupdate: string; setPupdate: (v: string) => void; t: any }) {
+function PUpdateDropdown({ pupdate, setPupdate, t }: { pupdate: string; setPupdate: (v: string) => void; t: Translations }) {
   const [open, setOpen] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -147,15 +114,15 @@ function PUpdateDropdown({ pupdate, setPupdate, t }: { pupdate: string; setPupda
 export function Simulation() {
   const navigate = useNavigate();
   const {
-    npes, connections, trials, contingencies, hasITI,
+    npes, connections, trials, contingencies, hasITI, modelKind,
     numNetworks, thresholdPreset, disc, pupdate, appMode, simStatus, simError, simulationResults, simulationMetadata,
     getThresholdType,
     setNumNetworks, setThresholdPreset, setDisc, setPupdate, setSimStatus, setSimResults, setSimError,
     playbackIndex, isPlaying, playbackSpeed,
     setPlaybackIndex, setIsPlaying, setPlaybackSpeed,
-    lockedLayout,
+    lockedLayout, simulationInspector,
   } = useSimStore();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { confirm } = useConfirm();
   const toast = useToast();
 
@@ -163,30 +130,27 @@ export function Simulation() {
   const [saveLoadMsg, setSaveLoadMsg] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [simStartTime, setSimStartTime] = useState<number | null>(null);
+  const [completedElapsedMs, setCompletedElapsedMs] = useState(0);
+  const [etaNow, setEtaNow] = useState(0);
+  const [inspectorEnabled, setInspectorEnabled] = useState(false);
+  const [inspectorLimit, setInspectorLimit] = useState(2000);
+  const [selectedInspectorUnit, setSelectedInspectorUnit] = useState<string>();
   const playbackRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const progressIntervalRef = useRef<number | null>(null);
   const cancelledRef = useRef(false);
-
-  // Clean up progress interval on unmount (prevents memory leak if user navigates away during simulation)
-  useEffect(() => {
-    return () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
-  }, []);
 
   const canRun = npes.length >= 2 && connections.length >= 1 && Object.keys(trials).length >= 1 && contingencies.length >= 1;
 
   const handleSaveExperiment = useCallback(() => {
     downloadArchitectureJSON(
       npes, connections, trials, contingencies, hasITI,
-      `ddm-experiment-${new Date().toISOString().slice(0, 10)}.json`,
-      { numNetworks, thresholdPreset, disc, pupdate },
+      `${modelKind}-experiment-${new Date().toISOString().slice(0, 10)}.json`,
+      { numNetworks, thresholdPreset, disc, pupdate, modelKind },
       lockedLayout
     );
     setSaveLoadMsg(t.sim.experimentSaved);
     setTimeout(() => setSaveLoadMsg(null), 3000);
-  }, [npes, connections, trials, contingencies, hasITI, numNetworks, thresholdPreset, disc, pupdate, lockedLayout, t]);
+  }, [npes, connections, trials, contingencies, hasITI, numNetworks, thresholdPreset, disc, pupdate, modelKind, lockedLayout, t]);
 
   const handleLoadExperiment = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -249,6 +213,21 @@ export function Simulation() {
       toast.warning(t.sim.validationDisconnected.replace('{units}', disconnected.map(n => n.name).join(', ')));
     }
 
+    try {
+      const validation = await validateNetwork(npes, connections);
+      if (!validation.valid) {
+        const message = validation.error || t.sim.simulationFailed;
+        setSimError(message);
+        toast.error(message);
+        return;
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t.sim.errorNetwork;
+      setSimError(message);
+      toast.error(message);
+      return;
+    }
+
     setSimStatus('running');
     setProgress(0);
     setCompletedNetworks(0);
@@ -256,32 +235,11 @@ export function Simulation() {
     setIsCancelling(false);
     const startMs = Date.now();
     setSimStartTime(startMs);
-
-    // Clear any leftover interval
-    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    setCompletedElapsedMs(0);
+    setEtaNow(startMs);
 
     // Build R-compatible data (shared across all network calls)
-    const npeData: any = {
-      NPE: npes.map(n => n.name),
-      Type: npes.map(n => n.type),
-      Layer: npes.map(n => n.layer),
-      Activation: npes.map(n => n.activation),
-      'Temporal.Summation': npes.map(n => n.temporalSummation),
-      'Activation.Decay': npes.map(n => n.activationDecay),
-      mu: npes.map(n => n.mu),
-      sigma: npes.map(n => n.sigma),
-      logisSigma: npes.map(n => n.logisSigma),
-    };
-
-    const connData: any = {
-      PreSinapticNPE: connections.map(c => c.presynapticNPE),
-      PostSinapticNPE: connections.map(c => c.postsynapticNPE),
-      Weight: connections.map(c => c.weight),
-      alpha: connections.map(c => c.alpha),
-      beta: connections.map(c => c.beta),
-      alpha_prime: connections.map(c => c.alphaPrime),
-      beta_prime: connections.map(c => c.betaPrime),
-    };
+    const { npes: npeData, connections: connData } = serializeNetwork(npes, connections);
 
     const baseParams = {
       npes: npeData,
@@ -292,11 +250,17 @@ export function Simulation() {
       threshold: getThresholdType(),
       disc,
       pupdate,
+      model: modelKind,
     };
 
     try {
       // Run networks one at a time for real progress tracking
-      const results: any[] = [];
+      const results: SimulationResult[][] = [];
+      type NetworkMetadata = Partial<SimulationMetadata> & {
+        sampledParameters?: Record<string, number>;
+      };
+      const networkMetadata: NetworkMetadata[] = [];
+      let firstInspector: SimulationInspector | null = null;
 
       for (let i = 0; i < numNetworks; i++) {
         // Check if user cancelled
@@ -308,7 +272,11 @@ export function Simulation() {
           return;
         }
 
-        const res = await runSimulationOne(baseParams);
+        const res = await runSimulationOne({
+          ...baseParams,
+          inspector: inspectorEnabled && i === 0
+            ? { enabled: true, maxTimesteps: inspectorLimit } : undefined,
+        });
 
         if (cancelledRef.current) {
           setSimStatus('idle');
@@ -325,16 +293,24 @@ export function Simulation() {
         }
 
         results.push(res.result);
+        if (i === 0 && res.inspector) firstInspector = res.inspector;
+        if (res.metadata) networkMetadata.push(res.metadata);
         const done = i + 1;
         setCompletedNetworks(done);
+        const now = Date.now();
+        setCompletedElapsedMs(now - startMs);
+        setEtaNow(now);
         // Real progress: percentage of completed networks
         setProgress(Math.round((done / numNetworks) * 100));
+      }
+
+      if (results.length === 0) {
+        throw new Error(t.sim.simulationFailed);
       }
 
       const duration = ((Date.now() - startMs) / 1000).toFixed(2);
       setSimStartTime(null);
 
-      // Identify unit columns vs connection columns vs signal columns
       const allCols = Object.keys(results[0][0] || {});
       const metaCols = ['Phase', 'Trial', 'TimeStep'];
       const signalCols = ['dVTA', 'dH'];
@@ -342,18 +318,26 @@ export function Simulation() {
       const unitCols = dataCols.filter(c => !c.includes('-'));
       const connectionCols = dataCols.filter(c => c.includes('-'));
 
+
       setSimResults(results, {
         numNetworks,
-        phases: Array.from(new Set(results[0].map((r: any) => String(r.Phase)))),
+        model: 'DTD',
+        phases: Array.from(new Set(results[0].map((r) => String(r.Phase)))),
         units: unitCols,
         connections: connectionCols,
-        totalTrials: Math.max(...results[0].map((r: any) => Number(r.Trial))),
+        totalTrials: Math.max(...results[0].map((r) => Number(r.Trial))),
         totalTimesteps: results[0].length,
         duration: parseFloat(duration),
         disc,
-      });
+        signals: signalCols,
+        networkParameters: networkMetadata.map(meta => meta.sampledParameters || {}),
+      }, firstInspector);
       setPlaybackIndex(0);
-    } catch (err: any) {
+      setIsPlaying(false);
+      if (inspectorEnabled && !firstInspector) {
+        toast.info(language === 'es' ? 'Este servidor no incluye el inspector. Los resultados se conservaron; ejecuta la versión actualizada para registrar las ecuaciones.' : 'This server does not include the inspector. Results were preserved; use the updated version to record equations.');
+      }
+    } catch (err: unknown) {
       setSimStartTime(null);
       if (cancelledRef.current) {
         setSimStatus('idle');
@@ -361,7 +345,7 @@ export function Simulation() {
         toast.info(t.toast.simulationCancelled);
         return;
       }
-      let errorMsg = err.message || t.sim.errorFallback;
+      let errorMsg = err instanceof Error ? err.message : t.sim.errorFallback;
       if (errorMsg.includes('timed out')) {
         errorMsg = t.sim.errorTimeout.replace('{networks}', String(numNetworks)).replace('{phases}', String(contingencies.length));
       } else if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
@@ -371,38 +355,28 @@ export function Simulation() {
       }
       setSimError(errorMsg);
     }
-  }, [canRun, npes, connections, trials, contingencies, hasITI, numNetworks, thresholdPreset, getThresholdType, disc, pupdate, setSimStatus, setSimResults, setSimError, setPlaybackIndex, t, toast]);
+  }, [canRun, npes, connections, trials, contingencies, hasITI, numNetworks, getThresholdType, disc, pupdate, modelKind, setSimStatus, setSimResults, setSimError, setPlaybackIndex, setIsPlaying, inspectorEnabled, inspectorLimit, language, t, toast]);
 
   // Live countdown ETA — ticks every second so it never "freezes"
-  const [etaText, setEtaText] = useState('');
   useEffect(() => {
-    if (!simStartTime || completedNetworks === 0 || completedNetworks >= numNetworks) {
-      setEtaText('');
-      return;
-    }
-    // Compute per-network average once when completedNetworks changes
-    const elapsed = Date.now() - simStartTime;
-    const perNetwork = elapsed / completedNetworks;
-
-    const tick = () => {
-      const now = Date.now();
-      const totalElapsed = now - simStartTime;
-      const estimated = perNetwork * numNetworks;
-      const remaining = Math.max(0, estimated - totalElapsed);
-      if (remaining < 500) { setEtaText(''); return; }
-      const secs = Math.round(remaining / 1000);
-      if (secs < 60) {
-        setEtaText(t.sim.etaRemaining.replace('{time}', `${secs}s`));
-      } else {
-        const mins = Math.floor(secs / 60);
-        const remSecs = secs % 60;
-        setEtaText(t.sim.etaRemaining.replace('{time}', `${mins}m ${remSecs}s`));
-      }
-    };
-    tick(); // immediate update
-    const id = window.setInterval(tick, 1000);
+    if (!simStartTime || completedNetworks === 0 || completedNetworks >= numNetworks) return;
+    const id = window.setInterval(() => setEtaNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [simStartTime, completedNetworks, numNetworks, t]);
+  }, [simStartTime, completedNetworks, numNetworks]);
+
+  const etaText = useMemo(() => {
+    if (!simStartTime || completedNetworks === 0 || completedNetworks >= numNetworks || completedElapsedMs <= 0) {
+      return '';
+    }
+    const perNetwork = completedElapsedMs / completedNetworks;
+    const remaining = Math.max(0, perNetwork * numNetworks - (etaNow - simStartTime));
+    if (remaining < 500) return '';
+    const secs = Math.round(remaining / 1000);
+    const time = secs < 60
+      ? `${secs}s`
+      : `${Math.floor(secs / 60)}m ${secs % 60}s`;
+    return t.sim.etaRemaining.replace('{time}', time);
+  }, [simStartTime, completedNetworks, numNetworks, completedElapsedMs, etaNow, t]);
 
   // Playback logic
   const currentData = useMemo(() => {
@@ -411,6 +385,20 @@ export function Simulation() {
   }, [simulationResults]);
 
   const maxIndex = currentData ? currentData.length - 1 : 0;
+
+  const publicationPositions = useMemo(() => {
+    const automatic = computePublicationLayout(npes, connections);
+    if (!lockedLayout) return automatic;
+    return Object.fromEntries(npes.map(npe => {
+      const point = lockedLayout[npe.name];
+      return [npe.name, point ? { x: point.x + 30, y: point.y + 30 } : automatic[npe.name]];
+    }));
+  }, [npes, connections, lockedLayout]);
+
+  const inspectRow = useCallback((index: number) => {
+    setIsPlaying(false);
+    setPlaybackIndex(Math.max(0, Math.min(maxIndex, index)));
+  }, [maxIndex, setIsPlaying, setPlaybackIndex]);
 
   useEffect(() => {
     if (isPlaying && currentData) {
@@ -430,93 +418,9 @@ export function Simulation() {
   }, [isPlaying, playbackSpeed, maxIndex, currentData, setPlaybackIndex, setIsPlaying]);
 
   // Build animated network nodes
-  const animatedNodes: Node[] = useMemo(() => {
-    // Pre-count NPEs per layer for proper spacing (fallback when no locked layout)
-    const layerTotals: Record<string, number> = {};
-    npes.forEach(npe => { layerTotals[npe.layer] = (layerTotals[npe.layer] || 0) + 1; });
-    const layerIdx: Record<string, number> = {};
 
-    return npes.map((npe) => {
-      const idx = layerIdx[npe.layer] || 0;
-      layerIdx[npe.layer] = idx + 1;
-      const total = layerTotals[npe.layer] || 1;
 
-      // Use locked layout from NetworkBuilder if available, otherwise fallback to default
-      let pos: { x: number; y: number };
-      if (lockedLayout && lockedLayout[npe.name]) {
-        pos = lockedLayout[npe.name];
-      } else {
-        const basePos = layerPositions[npe.layer] || { x: 300, y: 300 };
-        const yOffset = total > 1 ? (idx - (total - 1) / 2) * 80 : 0;
-        pos = { x: basePos.x, y: basePos.y + yOffset };
-      }
 
-      let activation = 0;
-      if (currentData && playbackIndex < currentData.length) {
-        const row = currentData[playbackIndex];
-        const val = row[npe.name];
-        if (typeof val === 'number') activation = val;
-      }
-
-      const color = activationColor(activation);
-
-      return {
-        id: npe.name,
-        position: pos,
-        data: {
-          label: (
-            <div className="text-center">
-              <div className="text-[10px] font-bold italic">{getDisplayName(npe.name)}</div>
-              <div className="text-[9px] opacity-70">{activation.toFixed(2)}</div>
-            </div>
-          ),
-        },
-        style: {
-          background: color,
-          color: '#fff',
-          border: `3px solid ${color}`,
-          borderRadius: getNodeShape(npe.layer, npe.type),
-          width: 65,
-          height: 65,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '11px',
-          fontWeight: 700,
-          boxShadow: activationGlow(activation),
-          transition: 'all 0.15s ease',
-        },
-      };
-    });
-  }, [npes, currentData, playbackIndex, lockedLayout]);
-
-  const animatedEdges: Edge[] = useMemo(() => {
-    return connections.map((conn) => {
-      let weight = conn.weight;
-      if (currentData && playbackIndex < currentData.length) {
-        const row = currentData[playbackIndex];
-        const connName = `${conn.presynapticNPE}-${conn.postsynapticNPE}`;
-        const val = row[connName];
-        if (typeof val === 'number') weight = val;
-      }
-
-      return {
-        id: `${conn.presynapticNPE}-${conn.postsynapticNPE}`,
-        source: conn.presynapticNPE,
-        target: conn.postsynapticNPE,
-        animated: isPlaying,
-        label: weight.toFixed(2),
-        labelStyle: { fill: '#64748b', fontSize: 9, fontWeight: 700 },
-        labelBgStyle: { fill: '#ffffff', fillOpacity: 0.85 },
-        style: {
-          stroke: weight >= 0.999 ? '#ef4444' : activationColor(weight),
-          strokeWidth: Math.max(1.5, weight * 6),
-          transition: 'all 0.15s ease',
-        },
-        markerEnd: { type: MarkerType.ArrowClosed, color: weight >= 0.999 ? '#ef4444' : '#64748b' },
-      };
-    });
-  }, [connections, currentData, playbackIndex, isPlaying]);
 
   const currentRow = currentData && playbackIndex < currentData.length ? currentData[playbackIndex] : null;
 
@@ -535,7 +439,12 @@ export function Simulation() {
       {/* Config + Controls */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard icon={Brain} label={t.sim.networks} value={numNetworks} color="cyan" />
-        <StatCard icon={Gauge} label={t.sim.thresholdLabel} value={t.sim[`preset_${thresholdPreset}` as keyof typeof t.sim] || thresholdPreset} color="teal" />
+        <StatCard
+          icon={Gauge}
+          label={(t.sim.thresholdLabel)}
+          value={(t.sim[`preset_${thresholdPreset}` as keyof typeof t.sim] || thresholdPreset)}
+          color="teal"
+        />
         <StatCard icon={Activity} label={t.sim.status} value={simStatus} color={simStatus === 'complete' ? 'emerald' : simStatus === 'error' ? 'rose' : 'amber'} />
         {appMode === 'advanced' && (
           <StatCard icon={Gauge} label={t.sim.discCriterion} value={disc} color="violet" />
@@ -544,6 +453,7 @@ export function Simulation() {
 
       {/* Simulation Parameters */}
       <Card className="p-4">
+
         <div className={`grid grid-cols-1 ${appMode === 'advanced' ? 'md:grid-cols-4' : 'md:grid-cols-2'} gap-4`}>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">{t.sim.networks}</label>
@@ -556,7 +466,7 @@ export function Simulation() {
               className="w-full px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 text-sm focus:border-cyan-500/50 focus:outline-none"
             />
           </div>
-          <div>
+          {<div>
             <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1">
               {t.sim.thresholdPreset}
               <Tooltip content={t.sim.thresholdPresetTooltip} />
@@ -564,7 +474,7 @@ export function Simulation() {
             <select
               value={thresholdPreset}
               onChange={async (e) => {
-                const newPreset = e.target.value as any;
+                const newPreset = e.target.value as ThresholdPreset;
                 if (npes.length > 0 && newPreset !== thresholdPreset) {
                   // Only warn if μ/σ values will actually change
                   // gaussian_ddmui and beta_ddmui share μ=0.2, σ=0.15 — switching between them doesn't change NPE params
@@ -594,7 +504,7 @@ export function Simulation() {
               {thresholdPreset === 'gaussian_donahoe1993' && 'Gaussian: θ ~ N(μ=0.0, σ=1.0)'}
               {thresholdPreset === 'beta_ddmui' && 'Beta: θ ~ Beta(μ=0.2, σ=0.15)'}
             </p>
-          </div>
+          </div>}
           {appMode === 'advanced' && (
             <>
               <PUpdateDropdown pupdate={pupdate} setPupdate={setPupdate} t={t} />
@@ -620,6 +530,7 @@ export function Simulation() {
             </>
           )}
         </div>
+
       </Card>
 
       {/* Save / Load Experiment */}
@@ -663,6 +574,32 @@ export function Simulation() {
           )}
         </AnimatePresence>
       </div>
+
+      {(
+        <section className="rounded-xl border border-slate-200 bg-white p-4" aria-label={language === 'es' ? 'Registro didáctico' : 'Teaching trace'}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex-1 min-w-56">
+              <label className="flex items-center gap-3 text-sm font-semibold text-slate-800">
+                <input type="checkbox" checked={inspectorEnabled} onChange={event => setInspectorEnabled(event.target.checked)}
+                  disabled={simStatus === 'running'} className="h-4 w-4 accent-cyan-700" />
+                {language === 'es' ? 'Registrar ecuaciones paso a paso' : 'Record equations step by step'}
+              </label>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600 max-w-prose">
+                {language === 'es' ? 'Registra los valores reales de la primera red: umbrales, activaciones, señales difusas y cambios de peso. Después podrás avanzar y retroceder por timesteps y ensayos sin ejecutar de nuevo el modelo.' : 'Record the first network’s actual thresholds, activations, diffuse signals and weight changes. Afterwards, move through timesteps and trials without running the model again.'}
+              </p>
+            </div>
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
+              {language === 'es' ? 'Límite del registro detallado' : 'Detailed trace limit'}
+              <select value={inspectorLimit} onChange={event => setInspectorLimit(Number(event.target.value))}
+                disabled={!inspectorEnabled || simStatus === 'running'}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 bg-white disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-cyan-600">
+                {[2000, 5000, 10000].map(limit => <option key={limit} value={limit}>{limit.toLocaleString()} timesteps</option>)}
+              </select>
+              <span>{language === 'es' ? 'El límite no acorta la simulación.' : 'The limit does not shorten the simulation.'}</span>
+            </label>
+          </div>
+        </section>
+      )}
 
       {/* Run button / Progress */}
       <AnimatePresence mode="wait">
@@ -870,7 +807,7 @@ export function Simulation() {
                 <div>
                   <p className="text-sm font-bold text-emerald-600">{t.sim.simulationComplete}</p>
                   <p className="text-xs text-slate-500">
-                    {simulationMetadata?.numNetworks} {t.sim.networksSuffix} in {simulationMetadata?.duration}s
+                    {simulationMetadata?.numNetworks} {t.sim.networksSuffix} {t.sim.durationConnector} {simulationMetadata?.duration}s
                   </p>
                 </div>
               </div>
@@ -894,21 +831,31 @@ export function Simulation() {
           {/* Network Playback */}
           <Card className="p-0 overflow-hidden" glow="cyan">
             {/* Playback controls */}
-            <div className="flex items-center gap-3 p-3 border-b border-slate-200 bg-slate-50">
+            <div className="flex flex-wrap items-center gap-3 p-3 border-b border-slate-200 bg-slate-50">
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
+                aria-label={isPlaying ? (language === 'es' ? 'Pausar reproducción' : 'Pause playback') : (language === 'es' ? 'Reproducir' : 'Play')}
                 className="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center hover:bg-cyan-200 transition-colors"
               >
                 {isPlaying ? <Pause size={18} /> : <Play size={18} />}
               </button>
               <button
                 onClick={() => { setPlaybackIndex(0); setIsPlaying(false); }}
+                aria-label={language === 'es' ? 'Volver al primer timestep' : 'Go to first timestep'}
                 className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors"
               >
                 <RotateCcw size={16} />
               </button>
               <button
-                onClick={() => setPlaybackIndex(Math.min(playbackIndex + 10, maxIndex))}
+                onClick={() => inspectRow(playbackIndex - 1)} disabled={playbackIndex === 0}
+                aria-label={language === 'es' ? 'Timestep anterior' : 'Previous timestep'}
+                className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 disabled:opacity-40"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                onClick={() => inspectRow(playbackIndex + 1)} disabled={playbackIndex >= maxIndex}
+                aria-label={language === 'es' ? 'Siguiente timestep' : 'Next timestep'}
                 className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors"
               >
                 <SkipForward size={16} />
@@ -932,9 +879,10 @@ export function Simulation() {
               </div>
 
               {/* Progress slider */}
-              <div className="flex-1 mx-4">
+              <div className="flex-1 min-w-40 mx-2">
                 <input
                   type="range"
+                  aria-label={language === 'es' ? 'Timestep de reproducción' : 'Playback timestep'}
                   min="0"
                   max={maxIndex}
                   value={playbackIndex}
@@ -955,19 +903,27 @@ export function Simulation() {
 
             {/* Animated network */}
             <div className="h-[450px]">
-              <ReactFlow
-                nodes={animatedNodes}
-                edges={animatedEdges}
-                fitView
-                proOptions={{ hideAttribution: true }}
-                nodesDraggable={false}
-                nodesConnectable={false}
-                elementsSelectable={false}
-              >
-                <Background color="#e2e8f0" gap={20} />
-              </ReactFlow>
+              {((
+                <PublicationNetwork npes={npes} connections={connections} positions={publicationPositions}
+                  activations={Object.fromEntries(npes.map(npe => [npe.name, Number(currentRow?.[npe.name] ?? npe.activation)]))}
+                  weights={Object.fromEntries(connections.map(connection => {
+                    const key = `${connection.presynapticNPE}-${connection.postsynapticNPE}`;
+                    return [key, Number(currentRow?.[key] ?? connection.weight)];
+                  }))}
+                  showValues selectedUnit={selectedInspectorUnit} onSelectUnit={setSelectedInspectorUnit} language={language} />
+              ))}
             </div>
+            {<p className="px-4 py-2 text-xs text-slate-600 border-t border-slate-200">
+              {language === 'es' ? 'Red 1 · Estado al final del timestep. Selecciona una unidad para inspeccionar su cálculo.' : 'Network 1 · State at the end of the timestep. Select a unit to inspect its calculation.'}
+            </p>}
           </Card>
+          {simulationInspector && (
+            <EquationInspector trace={simulationInspector} rowIndex={playbackIndex} onRowChange={inspectRow}
+              selectedUnit={selectedInspectorUnit} onSelectUnit={setSelectedInspectorUnit} language={language} />
+          )}
+          {!simulationInspector && <p className="text-sm text-slate-600">
+            {language === 'es' ? 'Esta ejecución no tiene registro de ecuaciones. Activa «Registrar ecuaciones paso a paso» y ejecuta de nuevo para inspeccionarlas.' : 'This run has no equation trace. Enable “Record equations step by step” and run again to inspect them.'}
+          </p>}
         </motion.div>
       )}
     </div>

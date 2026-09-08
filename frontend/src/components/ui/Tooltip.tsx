@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useId, useState, useRef, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle } from 'lucide-react';
 
@@ -13,9 +13,10 @@ export function Tooltip({ content, children, iconSize = 14 }: TooltipProps) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLSpanElement>(null);
   const [align, setAlign] = useState<'center' | 'left' | 'right'>('center');
+  const tooltipId = useId();
 
-  useEffect(() => {
-    if (show && triggerRef.current) {
+  const showTooltip = () => {
+    if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       const tooltipWidth = 256; // w-64
       const halfWidth = tooltipWidth / 2;
@@ -28,7 +29,8 @@ export function Tooltip({ content, children, iconSize = 14 }: TooltipProps) {
         setAlign('center');
       }
     }
-  }, [show]);
+    setShow(true);
+  };
 
   const alignClass =
     align === 'left'
@@ -47,8 +49,12 @@ export function Tooltip({ content, children, iconSize = 14 }: TooltipProps) {
   return (
     <span className="relative inline-flex items-center" ref={triggerRef}>
       <span
-        onMouseEnter={() => setShow(true)}
+        onMouseEnter={showTooltip}
         onMouseLeave={() => setShow(false)}
+        onFocus={showTooltip}
+        onBlur={() => setShow(false)}
+        tabIndex={0}
+        aria-describedby={show ? tooltipId : undefined}
         className="cursor-help inline-flex items-center"
       >
         {children || <HelpCircle size={iconSize} className="text-slate-400 hover:text-cyan-500 transition-colors" />}
@@ -56,6 +62,8 @@ export function Tooltip({ content, children, iconSize = 14 }: TooltipProps) {
       <AnimatePresence>
         {show && (
           <motion.div
+            id={tooltipId}
+            role="tooltip"
             ref={tooltipRef}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}

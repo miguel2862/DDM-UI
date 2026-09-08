@@ -9,18 +9,26 @@
  * - Arrow marker at target end
  */
 import { memo, useId } from 'react';
-import { getBezierPath } from '@xyflow/react';
+import { getBezierPath, type Edge, type EdgeProps } from '@xyflow/react';
 
-function AnimatedEdgeComponent(props: any) {
-  const {
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-    data,
-  } = props;
+interface AnimatedEdgeData extends Record<string, unknown> {
+  sourceColor?: string;
+  targetColor?: string;
+  weight?: number;
+  edgeIndex?: number;
+}
+
+type AnimatedEdgeModel = Edge<AnimatedEdgeData, 'animatedEdge'>;
+
+function AnimatedEdgeComponent({
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  data,
+}: EdgeProps<AnimatedEdgeModel>) {
 
   const uid = useId().replace(/:/g, '');
   const gradientId = `edge_grad_${uid}`;

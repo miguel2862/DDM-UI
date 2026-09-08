@@ -12,6 +12,11 @@ export interface Phenomenon {
 }
 
 export const phenomena: Phenomenon[] = [
+
+
+
+
+
   {
     id: 'extinction',
     name: 'Extinction',

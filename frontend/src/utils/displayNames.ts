@@ -8,6 +8,16 @@ export function getDisplayName(name: string): string {
   // Special cases
   if (name === 'dVTA') return '\u03B4_VTA';
   if (name === 'dCA1') return '\u03B4_CA1';
+  if (name === 'TD_delta') return '\u03B4 TD';
+  if (name === 'Pav_delta') return '\u03B4 Pavlovian';
+  if (name === 'P_peck') return 'P(peck)';
+  if (name === 'P_withhold') return 'P(withhold)';
+  if (name === 'ContextNovelty') return 'HPC novelty';
+  if (name === 'LatentCause') return 'HPC state';
+  if (name.startsWith('Motor_')) return `Motor: ${name.slice(6)}`;
+  if (name.startsWith('D1_')) return `D1/Go: ${name.slice(3)}`;
+  if (name.startsWith('D2_')) return `D2/NoGo: ${name.slice(3)}`;
+  if (name.startsWith('Thalamus_')) return `Thalamus: ${name.slice(9)}`;
 
   // Handle double dot notation: S..1 -> S''_1
   const doubleDotMatch = name.match(/^([A-Za-z]+)\.\.(\d+)$/);

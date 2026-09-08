@@ -8,11 +8,14 @@ const path = require('path');
 const { spawn, execSync } = require('child_process');
 const http = require('http');
 const fs = require('fs');
+const net = require('net');
+const crypto = require('crypto');
 
 let mainWindow = null;
 let rProcess = null;
 let rProcessPid = null; // Keep PID separately so SIGKILL fallback works
-const R_PORT = 8000;
+let rPort = null;
+const apiToken = crypto.randomBytes(32).toString('hex');
 const isDev = !app.isPackaged;
 
 // ── Paths ────────────────────────────────────────────────────────────────────
@@ -54,39 +57,41 @@ function getFrontendPath() {
   return path.join(process.resourcesPath, 'frontend');
 }
 
-// ── Kill orphan R processes on our port ──────────────────────────────────────
-function killOrphanR() {
-  try {
-    if (process.platform === 'win32') {
-      // Find and kill any process listening on our port
-      const result = execSync(`netstat -ano | findstr :${R_PORT} | findstr LISTENING`, { encoding: 'utf8', timeout: 5000 });
-      const lines = result.trim().split('\n');
-      for (const line of lines) {
-        const pid = line.trim().split(/\s+/).pop();
-        if (pid && pid !== '0') {
-          console.log(`[DDM-UI] Killing orphan process on port ${R_PORT} (PID ${pid})`);
-          try { execSync(`taskkill /pid ${pid} /f /t`, { timeout: 5000 }); } catch { /* ignore */ }
-        }
-      }
-    } else {
-      // macOS/Linux: find process on port and kill it
-      const result = execSync(`lsof -ti :${R_PORT}`, { encoding: 'utf8', timeout: 5000 });
-      const pids = result.trim().split('\n').filter(Boolean);
-      for (const pid of pids) {
-        console.log(`[DDM-UI] Killing orphan process on port ${R_PORT} (PID ${pid})`);
-        try { execSync(`kill -9 ${pid}`, { timeout: 5000 }); } catch { /* ignore */ }
+// Production uses an ephemeral loopback port so DDM-UI does not collide with
+// another local service. Development keeps port 8000 for the Vite proxy.
+function selectApiPort() {
+  const probe = (port) => new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.once('error', reject);
+    server.listen(port, '127.0.0.1', () => {
+      server.close((error) => error ? reject(error) : resolve(port));
+    });
+  });
+
+  if (isDev) return probe(8000);
+  return (async () => {
+    let lastError = null;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      // httpuv accepts only ports 1024..49151. Keep a margin from both ends.
+      const candidate = 20000 + crypto.randomInt(28000);
+      try {
+        return await probe(candidate);
+      } catch (error) {
+        lastError = error;
       }
     }
-  } catch {
-    // No process found on the port — good, nothing to clean up
-  }
+    throw lastError || new Error('Could not find an available local API port.');
+  })();
 }
 
 // ── Start R Plumber API ──────────────────────────────────────────────────────
 function startR() {
   return new Promise((resolve, reject) => {
-    // First, clean up any orphan R processes from a previous bad shutdown
-    killOrphanR();
+    if (!rPort) {
+      reject(new Error('The local API port has not been selected.'));
+      return;
+    }
 
     const rscript = getRPath();
     const apiDir = getApiPath();
@@ -106,9 +111,11 @@ function startR() {
     const env = { ...process.env };
     if (!isDev) {
       const rLibs = path.join(process.resourcesPath, 'R-portable', 'library');
+      env.R_HOME = path.join(process.resourcesPath, 'R-portable');
       env.R_LIBS_USER = rLibs;
       env.R_LIBS = rLibs;
     }
+    if (!isDev) env.DDM_API_TOKEN = apiToken;
 
     // Suppress macOS Java dialog that appears when R loads packages referencing rJava.
     // NOAWT prevents AWT/Swing from initializing (which triggers the "install Java" popup).
@@ -120,7 +127,7 @@ function startR() {
       env.R_JAVA_LD_LIBRARY_PATH = '';
     }
 
-    const rCmd = `plumber::plumb('${plumberFile.replace(/\\/g, '/')}')$run(host='127.0.0.1', port=${R_PORT})`;
+    const rCmd = `plumber::plumb('${plumberFile.replace(/\\/g, '/')}')$run(host='127.0.0.1', port=${rPort})`;
 
     // Use detached + process group so we can kill all child processes together
     rProcess = spawn(rscript, ['-e', rCmd], {
@@ -151,8 +158,9 @@ function startR() {
     rProcess.stderr.on('data', (data) => {
       const msg = data.toString().trim();
       console.log(`[R] ${msg}`);
-      // Plumber logs "Running plumber API" or "Starting server" to stderr
-      if (msg.includes('Running') || msg.includes('Starting') || msg.includes('port')) {
+      // Accept only an affirmative startup line. Error messages can mention a
+      // port too, so readiness is otherwise established by the health poll.
+      if (/Running plumber API|Starting server|Listening on/i.test(msg)) {
         finish(resolve);
       }
     });
@@ -173,7 +181,12 @@ function startR() {
     const maxAttempts = 30; // 15 seconds
     poll = setInterval(() => {
       attempts++;
-      http.get(`http://127.0.0.1:${R_PORT}/api/health`, (res) => {
+      http.get({
+        hostname: '127.0.0.1',
+        port: rPort,
+        path: '/api/health',
+        headers: { 'X-DDM-Token': apiToken },
+      }, (res) => {
         if (res.statusCode === 200) {
           console.log(`[DDM-UI] R API is ready (attempt ${attempts})`);
           finish(resolve);
@@ -240,6 +253,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
     },
     show: false, // Show after content loads
     backgroundColor: '#0f172a', // Match app dark background
@@ -256,7 +270,9 @@ function createWindow() {
     // Production: load built frontend, proxy API calls
     const frontendPath = getFrontendPath();
     const indexPath = path.join(frontendPath, 'index.html');
-    mainWindow.loadFile(indexPath);
+    mainWindow.loadFile(indexPath, {
+      query: { apiPort: String(rPort), apiToken },
+    });
   }
 
   mainWindow.once('ready-to-show', () => {
@@ -271,29 +287,15 @@ function createWindow() {
 // ── App Lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
   try {
-    // Show splash/loading while R starts
-    createWindow();
-
-    // Start R API
+    rPort = await selectApiPort();
     await startR();
-    console.log('[DDM-UI] R API started successfully');
-
-    // In production, we need to intercept /api calls and proxy them to R
-    if (!isDev) {
-      const { session } = require('electron');
-      session.defaultSession.webRequest.onBeforeRequest(
-        { urls: ['file://*/api/*'] },
-        (details, callback) => {
-          const apiPath = details.url.replace(/^file:\/\/.*?\/api\//, '');
-          callback({ redirectURL: `http://127.0.0.1:${R_PORT}/api/${apiPath}` });
-        }
-      );
-    }
+    console.log(`[DDM-UI] R API started successfully on loopback port ${rPort}`);
+    createWindow();
   } catch (err) {
     console.error('[DDM-UI] Startup error:', err);
     dialog.showErrorBox(
       'DDM-UI — Startup Error',
-      `Failed to start the simulation engine.\n\n${err.message}\n\nPlease ensure R is installed or contact support.`
+      `Failed to start the bundled simulation engine.\n\n${err.message}\n\nThe installation may be incomplete; reinstall DDM-UI or contact support.`
     );
     app.quit();
   }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw, Plus } from 'lucide-react';
@@ -17,6 +17,8 @@ import { ConfirmDialogProvider } from './components/ui/ConfirmDialog';
 import { useAutoSave, getSavedSession, restoreSession, clearAutoSave } from './hooks/useAutoSave';
 import { usePlaybackKeys } from './hooks/usePlaybackKeys';
 import { useI18n } from './i18n';
+
+type SavedSession = NonNullable<ReturnType<typeof getSavedSession>>;
 
 function AppContent() {
   // Auto-save model state on page close/navigate away
@@ -45,7 +47,7 @@ function AppContent() {
 
 /** Dialog asking user if they want to restore a previous session */
 function RestoreSessionDialog({ savedData, onRestore, onNewSession }: {
-  savedData: any;
+  savedData: SavedSession;
   onRestore: () => void;
   onNewSession: () => void;
 }) {
@@ -122,19 +124,10 @@ function RestoreSessionDialog({ savedData, onRestore, onNewSession }: {
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
-  const [savedData, setSavedData] = useState<any>(null);
-  const [sessionDecided, setSessionDecided] = useState(false);
-
-  // After splash, check for saved session
-  useEffect(() => {
-    if (!splashDone) return;
-    const data = getSavedSession();
-    if (data) {
-      setSavedData(data);
-    } else {
-      setSessionDecided(true);
-    }
-  }, [splashDone]);
+  const [savedData, setSavedData] = useState<ReturnType<typeof getSavedSession>>(
+    () => getSavedSession(),
+  );
+  const [sessionDecided, setSessionDecided] = useState(() => savedData === null);
 
   const handleRestore = useCallback(() => {
     if (savedData) restoreSession(savedData);

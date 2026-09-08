@@ -33,6 +33,9 @@ export function Help() {
         </div>
       </Card>
 
+
+
+
       {/* Network Architecture */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
@@ -234,6 +237,30 @@ export function Help() {
             <a href="https://doi.org/10.1901/jeab.1993.60-17" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-700 underline text-xs mt-1">
               <ExternalLink size={10} /> doi:10.1901/jeab.1993.60-17
+            </a>
+          </div>
+
+          <div className="pl-6 -indent-6">
+            <p>Aguayo-Mendoza, M., Buriticá, J., & Burgos, J.E. (2024). Autoshaped impulsivity: Some explorations with a neural network model. <em>Behavioural Processes, 218</em>, 105040.</p>
+            <a href="https://doi.org/10.1016/j.beproc.2024.105040" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-700 underline text-xs mt-1">
+              <ExternalLink size={10} /> doi:10.1016/j.beproc.2024.105040
+            </a>
+          </div>
+
+          <div className="pl-6 -indent-6">
+            <p>Lesaint, F., Sigaud, O., & Khamassi, M. (2014). Accounting for negative automaintenance in pigeons. <em>PLOS ONE, 9</em>, e111050.</p>
+            <a href="https://doi.org/10.1371/journal.pone.0111050" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-700 underline text-xs mt-1">
+              <ExternalLink size={10} /> doi:10.1371/journal.pone.0111050
+            </a>
+          </div>
+
+          <div className="pl-6 -indent-6">
+            <p>Jaskir, A., & Frank, M.J. (2023). On the normative advantages of dopamine and striatal opponency for learning and choice. <em>eLife, 12</em>, e85107.</p>
+            <a href="https://doi.org/10.7554/eLife.85107" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-700 underline text-xs mt-1">
+              <ExternalLink size={10} /> doi:10.7554/eLife.85107
             </a>
           </div>
 

@@ -55,6 +55,8 @@ export interface SimulationResult {
 }
 
 export interface SimulationMetadata {
+  model?: 'DTD';
+  version?: string;
   numNetworks: number;
   phases: string[];
   units: string[];
@@ -63,7 +65,15 @@ export interface SimulationMetadata {
   totalTimesteps: number;
   duration: number;
   disc?: number;
+  signals?: string[];
+  networkParameters?: Array<Record<string, number>>;
 }
+
+export type ModelKind = 'dtd';
+
+
+
+
 
 export interface SimulationResponse {
   success: boolean;
@@ -81,6 +91,7 @@ export interface TemplateMetadata {
   phases: string;
   npeCount: number;
   connectionCount: number;
+  model?: ModelKind;
 }
 
 export interface TemplateData {
@@ -92,6 +103,7 @@ export interface TemplateData {
   trials: Record<string, string[]>;
   contingencies: string[];
   hasITI: boolean[];
+  model?: ModelKind;
 }
 
 export type ThresholdPreset = 'gaussian_ddmui' | 'gaussian_donahoe1993' | 'beta_ddmui';

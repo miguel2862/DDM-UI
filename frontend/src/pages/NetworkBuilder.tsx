@@ -10,6 +10,7 @@ import {
   type Node,
   type Edge,
   type NodeChange,
+  type NodeMouseHandler,
   MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -30,6 +31,8 @@ import type { NPE, NPELayer, NPEType } from '../types/ddm';
 import { GlowNode } from '../components/network/GlowNode';
 import { AnimatedEdge } from '../components/network/AnimatedEdge';
 import { BrainView } from '../components/network/BrainView';
+import { PublicationNetwork } from '../components/network/PublicationNetwork';
+import { computePublicationLayout, downloadPublicationPng, downloadPublicationSvg } from '../utils/publicationNetwork';
 
 // ── Custom node / edge types for Modern ──
 const modernNodeTypes = {
@@ -127,7 +130,7 @@ const layerRow: Record<string, number> = {
 
 function getNodeShape(layer: string, type: string): string {
   if (layer === 'US') return '8px';
-  if (layer === 'PrimarySensory' || layer === 'PrimaryMotor') return '4px';
+  if (['PrimarySensory', 'PrimaryMotor'].includes(layer)) return '4px';
   if (type === 'Inhibitory') return '2px';
   if (layer === 'Dopaminergic') return '12px';
   return '50%';
@@ -171,7 +174,7 @@ function computeAutoLayout(npes: NPE[]): Record<string, { x: number; y: number }
   return positions;
 }
 
-type LayoutMode = 'traditional' | 'modern' | 'transduction';
+type LayoutMode = 'publication' | 'traditional' | 'modern' | 'transduction';
 
 // ── Node sizes per layer for modern/transduction layouts ──
 const modernNodeSize: Record<string, number> = {
@@ -279,13 +282,19 @@ const layerDisplayNames: Record<NPELayer, string> = {
 };
 
 function NetworkBuilderInner() {
-  const { npes, connections, addNPE, removeNPE, addConnection, removeConnection, appMode } = useSimStore();
-  const { t } = useI18n();
+  const {
+    npes, connections, addNPE, removeNPE, addConnection, removeConnection,
+    appMode, modelKind,
+  } = useSimStore();
+  const { t, language } = useI18n();
   const { confirm } = useConfirm();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<'units' | 'connections'>('units');
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>('traditional');
+  const [layoutPreference, setLayoutMode] = useState<LayoutMode>('publication');
+  const layoutMode = modelKind !== 'dtd' && layoutPreference === 'publication' ? 'traditional' : layoutPreference;
   const flowRef = useRef<HTMLDivElement>(null);
+  const publicationRef = useRef<SVGSVGElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const { fitView } = useReactFlow();
 
   // Whether current layout uses the dark canvas + custom components
@@ -307,9 +316,11 @@ function NetworkBuilderInner() {
 
   // Compute positions for the current layout mode (transduction uses OrbitalView, not React Flow)
   const computeLayoutForMode = useCallback((mode: LayoutMode, npeList: NPE[]) => {
+    if (mode === 'publication') return Object.fromEntries(Object.entries(computePublicationLayout(npeList, connections))
+      .map(([name, point]) => [name, { x: point.x - 30, y: point.y - 30 }]));
     if (mode === 'modern') return computeModernLayout(npeList);
     return computeAutoLayout(npeList);
-  }, []);
+  }, [connections]);
 
   // Initialize customPositions on mount / when npes change to prevent first-drag glitch
   useEffect(() => {
@@ -331,23 +342,39 @@ function NetworkBuilderInner() {
     const positions = computeLayoutForMode(layoutMode, npes);
     setCustomPositions(positions);
     // After state update, fit view
-    setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 50);
+    if (layoutMode !== 'publication') setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 50);
   }, [npes, layoutMode, fitView, computeLayoutForMode]);
 
   const handleLockLayout = useCallback(() => {
-    const positions = customPositions || computeAutoLayout(npes);
+    const positions = customPositions || computeLayoutForMode(layoutMode, npes);
     useSimStore.getState().setLockedLayout(positions);
     setIsLocked(true);
     // Reset visual feedback after 2 seconds
     setTimeout(() => setIsLocked(false), 2000);
-  }, [customPositions, npes]);
+  }, [customPositions, npes, layoutMode, computeLayoutForMode]);
+
+  const publicationPositions = useMemo(() => {
+    const positions = customPositions || computeLayoutForMode('publication', npes);
+    return Object.fromEntries(Object.entries(positions).map(([name, point]) => [name, { x: point.x + 30, y: point.y + 30 }]));
+  }, [customPositions, computeLayoutForMode, npes]);
+
+  const handlePublicationPositions = useCallback((positions: Record<string, { x: number; y: number }>) => {
+    setCustomPositions(Object.fromEntries(Object.entries(positions).map(([name, point]) => [name, { x: point.x - 30, y: point.y - 30 }])));
+  }, []);
 
   const handleDownloadPng = useCallback(async () => {
-    if (!flowRef.current) return;
+    if (!flowRef.current || npes.length === 0 || isExporting) return;
+    setIsExporting(true);
     try {
+      if (layoutMode === 'publication' && publicationRef.current) {
+        await downloadPublicationPng(publicationRef.current, 'ddm-network-publication.png', 4);
+        return;
+      }
       const dataUrl = await toPng(flowRef.current, {
         backgroundColor: layoutMode === 'transduction' ? '#110d18' : layoutMode === 'modern' ? '#0b1120' : '#f8fafc',
         quality: 1.0,
+        pixelRatio: 3,
+        filter: (node) => !(node instanceof Element && ['react-flow__controls', 'react-flow__minimap', 'react-flow__attribution', 'react-flow__handle'].some(name => node.classList.contains(name))),
       });
       const link = document.createElement('a');
       link.download = 'ddm-network.png';
@@ -355,8 +382,20 @@ function NetworkBuilderInner() {
       link.click();
     } catch (err) {
       console.error('Failed to export PNG:', err);
+      toast.error(language === 'es' ? 'No se pudo exportar la red. Inténtalo de nuevo.' : 'Could not export the network. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
-  }, [layoutMode]);
+  }, [layoutMode, npes.length, isExporting, toast, language]);
+
+  const handleDownloadSvg = useCallback(async () => {
+    if (!publicationRef.current || npes.length === 0) return;
+    try {
+      await downloadPublicationSvg(publicationRef.current, 'ddm-network-publication.svg');
+    } catch {
+      toast.error(language === 'es' ? 'No se pudo exportar el SVG.' : 'Could not export the SVG.');
+    }
+  }, [npes.length, toast, language]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -382,6 +421,7 @@ function NetworkBuilderInner() {
       store.setTrials(data.trials);
       store.setContingencies(data.contingencies);
       store.setHasITI(data.hasITI);
+      if (data.modelKind) store.setModelKind(data.modelKind);
       // Restore locked layout if present
       if (data.lockedLayout) {
         store.setLockedLayout(data.lockedLayout);
@@ -577,7 +617,7 @@ function NetworkBuilderInner() {
         animated: true,
         style: {
           stroke: conn.weight >= 0.999 ? '#ef4444' : '#64748b',
-          strokeWidth: Math.max(1.5, conn.weight * 4),
+          strokeWidth: Math.max(1.5, Math.abs(conn.weight) * 4),
         },
         markerEnd: { type: MarkerType.ArrowClosed, color: conn.weight >= 0.999 ? '#ef4444' : '#64748b' },
         label: conn.weight.toFixed(2),
@@ -588,7 +628,7 @@ function NetworkBuilderInner() {
   }, [connections, layoutMode, npes]);
 
   // Handle node drag to persist positions (skip virtual nodes)
-  const onNodeDragStop = useCallback((_: any, node: Node) => {
+  const onNodeDragStop = useCallback<NodeMouseHandler>((_, node) => {
     if (node.id.startsWith('__virtual_')) return;
     setCustomPositions(prev => ({
       ...(prev || {}),
@@ -603,7 +643,10 @@ function NetworkBuilderInner() {
           <Brain size={20} className="text-cyan-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">{t.network.pageTitle}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-800">{t.network.pageTitle}</h1>
+            <Badge variant={('muted')}>{modelKind.toUpperCase()}</Badge>
+          </div>
           <p className="text-sm text-slate-500">{t.network.pageSubtitle}</p>
         </div>
       </div>
@@ -613,7 +656,10 @@ function NetworkBuilderInner() {
         <Card className="lg:col-span-3 p-0 overflow-hidden" glow="cyan">
           <div ref={flowRef} className={`h-[550px] transition-colors duration-500 ${isDarkCanvas ? 'dark-flow' : ''}`}
                style={isDarkCanvas ? { background: layoutMode === 'transduction' ? '#110d18' : '#0b1120' } : undefined}>
-            {layoutMode === 'transduction' ? (
+            {layoutMode === 'publication' ? (
+              <PublicationNetwork npes={npes} connections={connections} positions={publicationPositions}
+                onPositionsChange={handlePublicationPositions} svgRef={publicationRef} language={language} />
+            ) : layoutMode === 'transduction' ? (
               /* ── Transduction: BrainView (sagittal brain silhouette — no React Flow) ── */
               <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <BrainView
@@ -664,22 +710,27 @@ function NetworkBuilderInner() {
             )}
           </div>
           {/* Layer legend */}
-          <div className={`flex flex-wrap items-center gap-2 px-3 pt-3 pb-1 border-t transition-colors duration-500 ${
+          {layoutMode === 'publication' ? (
+            <p className="px-4 py-3 text-xs text-slate-600 border-t border-slate-200 bg-white">
+              {language === 'es' ? 'Campos difusos = modulación del aprendizaje, no conexiones. Arrastra las unidades para ajustar la figura. Exportación limpia, sin controles.' : 'Diffuse fields modulate learning; they are not connections. Drag units to arrange your figure. Clean export without controls.'}
+            </p>
+          ) : <div className={`flex flex-wrap items-center gap-2 px-3 pt-3 pb-1 border-t transition-colors duration-500 ${
             isDarkCanvas
               ? 'border-slate-700/50 bg-slate-900/80'
               : 'border-slate-200 bg-slate-50'
           }`}>
-            {Object.entries(layerColors).map(([layer, color]) => (
+            {Object.entries(layerColors).filter(([layer]) => npes.some(npe => npe.layer === layer)).map(([layer, color]) => (
               <div key={layer} className={`flex items-center gap-1.5 text-xs ${isDarkCanvas ? 'text-slate-400' : 'text-slate-500'}`}>
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color, boxShadow: isDarkCanvas ? `0 0 6px ${color}66` : undefined }} />
                 {layerDisplayNames[layer as NPELayer] || layer}
               </div>
             ))}
-          </div>
+          </div>}
           {/* Action buttons */}
-          <div className={`flex items-center gap-2 px-3 pb-3 transition-colors duration-500 ${isDarkCanvas ? 'bg-slate-900/80' : 'bg-slate-50'}`}>
+          <div className={`flex flex-wrap items-center gap-2 p-3 transition-colors duration-500 ${isDarkCanvas ? 'bg-slate-900/80' : 'bg-slate-50'}`}>
             <button
               onClick={handleDownloadPng}
+              disabled={npes.length === 0 || isExporting}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
                 isDarkCanvas
                   ? 'text-violet-300 border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20'
@@ -688,6 +739,10 @@ function NetworkBuilderInner() {
             >
               <Download size={12} /> {t.network.exportPNG}
             </button>
+            {layoutMode === 'publication' && <button type="button" onClick={handleDownloadSvg} disabled={npes.length === 0}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-cyan-600">
+              SVG
+            </button>}
 
             {/* Layout mode switcher */}
             <div className={`flex gap-0.5 p-0.5 rounded-lg border transition-colors duration-500 ${
@@ -696,6 +751,7 @@ function NetworkBuilderInner() {
                 : 'bg-slate-200/60 border-slate-200'
             }`}>
               {([
+                { mode: 'publication' as LayoutMode, icon: LayoutGrid, label: language === 'es' ? 'Publicación' : 'Publication' },
                 { mode: 'traditional' as LayoutMode, icon: LayoutGrid, label: t.network.layoutTraditional },
                 { mode: 'modern' as LayoutMode, icon: Sparkles, label: t.network.layoutModern },
                 { mode: 'transduction' as LayoutMode, icon: ArrowRightLeft, label: t.network.layoutTransduction },
@@ -705,7 +761,7 @@ function NetworkBuilderInner() {
                   onClick={() => {
                     setLayoutMode(mode);
                     setCustomPositions(null); // trigger re-layout
-                    setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 50);
+                    if (mode !== 'publication') setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 50);
                   }}
                   className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
                     layoutMode === mode
@@ -719,7 +775,7 @@ function NetworkBuilderInner() {
                   title={label}
                 >
                   <Icon size={12} />
-                  <span className="hidden xl:inline">{label}</span>
+                  <span className={mode === 'publication' ? '' : 'hidden xl:inline'}>{label}</span>
                 </button>
               ))}
             </div>
@@ -785,7 +841,10 @@ function NetworkBuilderInner() {
             <button
               onClick={() => {
                 const { npes, connections, trials, contingencies, hasITI, lockedLayout } = useSimStore.getState();
-                downloadArchitectureJSON(npes, connections, trials, contingencies, hasITI, undefined, undefined, lockedLayout);
+                downloadArchitectureJSON(
+                  npes, connections, trials, contingencies, hasITI, undefined,
+                  { modelKind }, lockedLayout,
+                );
               }}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 hover:bg-slate-100 transition-colors"
             >
@@ -873,8 +932,8 @@ function NetworkBuilderInner() {
                             <input
                               type="number"
                               step="0.01"
-                              min="0"
-                              max="1"
+                              min={('0')}
+                              max={('1')}
                               value={value}
                               onChange={(e) => set(parseFloat(e.target.value) || 0)}
                               className="w-full px-2 py-1.5 rounded-md bg-white border border-slate-200 text-slate-700 text-xs focus:border-cyan-500/50 focus:outline-none"
@@ -995,8 +1054,8 @@ function NetworkBuilderInner() {
                       <label className="block text-xs font-semibold text-slate-500 mb-1">{t.network.weight}: {connWeight.toFixed(2)}</label>
                       <input
                         type="range"
-                        min="0"
-                        max="1"
+                        min={('0')}
+                        max={('1')}
                         step="0.01"
                         value={connWeight}
                         onChange={(e) => setConnWeight(parseFloat(e.target.value))}

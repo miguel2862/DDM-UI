@@ -30,15 +30,15 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     state?.resolve(true);
     setState(null);
-  };
+  }, [state]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     state?.resolve(false);
     setState(null);
-  };
+  }, [state]);
 
   // Close on Escape key
   useEffect(() => {
@@ -48,7 +48,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state, handleCancel]);
 
   return (
     <ConfirmContext.Provider value={{ confirm }}>
@@ -125,6 +125,8 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// The provider and its hook intentionally form one colocated context API.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useConfirm(): ConfirmContextValue {
   const ctx = useContext(ConfirmContext);
   if (!ctx) throw new Error('useConfirm must be used within ConfirmDialogProvider');
